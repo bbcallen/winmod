@@ -15,8 +15,7 @@
 
 NS_WINMOD_BEGIN
 
-// 仅支持单层遍历
-// .和..会自动跳过
+// auto skip . and ..
 class CWinFileFind: public CWinFileFindData
 {
 public:
@@ -29,6 +28,7 @@ public:
     BOOL    FindNextFile();
 
     void    Close();
+    HANDLE  GetHandle();
 
 private:
 

@@ -31,7 +31,11 @@ public:
     void    NotifyStopRunning();
     DWORD   WaitUntilNotifiedStop(DWORD dwMilliseconds = INFINITE);
     BOOL    IsNotifiedStopRunning();
-    void    ForceStopRunning(DWORD dwMilliseconds, DWORD dwTerminateCode = 1);
+    void    ForceStopRunning(DWORD dwMilliseconds);
+
+
+    DWORD   WaitExit(DWORD dwMilliseconds);
+    BOOL    IsExit();
 
 protected:
 
@@ -91,15 +95,21 @@ inline BOOL AWinRunnable::IsNotifiedStopRunning()
 }
 
 
-inline void AWinRunnable::ForceStopRunning(DWORD dwMilliseconds, DWORD dwTerminateCode)
+inline void AWinRunnable::ForceStopRunning(DWORD dwMilliseconds)
 {
     NotifyStopRunning();
-    DWORD dwRet = m_hThread.WaitExit(dwMilliseconds);
-    if (WAIT_TIMEOUT == dwRet)
-        m_hThread.Terminate(dwTerminateCode);
+    m_hThread.WaitExit(dwMilliseconds);
 }
 
+inline DWORD AWinRunnable::WaitExit(DWORD dwMilliseconds)
+{
+    return m_hThread.WaitExit(dwMilliseconds);
+}
 
+inline BOOL AWinRunnable::IsExit()
+{
+    return m_hThread.IsExit();
+}
 
 
 

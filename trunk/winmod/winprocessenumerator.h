@@ -54,10 +54,9 @@ public:
     BOOL    EndOfProcesses();
     DWORD   GetProcessID();
 
-    // 获取进程的路径,如果权限不够,可能失败
+
     HRESULT GetProcessPath(CString& strProcessPath);
 
-    // 获取进程的设备路径, win2k下不支持
     HRESULT GetProcessImageName(CString& strProcessImageName);
 
     HRESULT GetProcessName(CString& strProcessName);

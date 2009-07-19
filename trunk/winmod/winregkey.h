@@ -9,6 +9,7 @@
 #define WINREGKEY_H
 
 #include <atlstr.h>
+#include <atlcoll.h>
 #include <atlbase.h>
 #include "winmod\winmodbase.h"
 
@@ -20,9 +21,13 @@ class CWinRegKey: public CRegKey
 {
 public:
 
-    HRESULT ExQueryStringValue(LPCWSTR lpszValueName, CString& strValue, DWORD dwCchMaxLen = WINMOD_REASONABL_VALUE_LEN);
+    LONG ExBinaryValue(LPCWSTR lpszValueName, CAtlArray<BYTE>& buf);
 
-    HRESULT ExQueryExpendedStringValue(LPCWSTR lpszValueName, CString& strValue, DWORD dwCchMaxLen = WINMOD_REASONABL_VALUE_LEN);
+    LONG ExQueryStringValue(LPCWSTR lpszValueName, CString& strValue, DWORD dwCchMaxLen = WINMOD_REASONABL_VALUE_LEN);
+
+    LONG ExQueryMultiStringValue(LPCWSTR lpszValueName, CAtlList<CString>& valueList);
+
+    LONG ExQueryExpendedStringValue(LPCWSTR lpszValueName, CString& strValue, DWORD dwCchMaxLen = WINMOD_REASONABL_VALUE_LEN);
 };
 
 NS_WINMOD_END

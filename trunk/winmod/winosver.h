@@ -49,9 +49,9 @@ public:
 
 
     /**
-    * @retval   +   当前操作系统大于指定版本
-    * @retval   -   当前操作系统小于指定版本
-    * @retval   0   当前操作系统等于于指定版本
+    * @retval   >0  current OS is greater than compared version
+    * @retval   <0  current OS is less than compared version
+    * @retval   0   current OS is equal to compared version
     */
     static int CompareVersion(DWORD dwMajorVer, DWORD dwMinorVer)
     {

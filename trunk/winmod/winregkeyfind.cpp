@@ -12,19 +12,40 @@
 
 using namespace WinMod;
 
-BOOL CWinRegKeyFind::FindFirstSubKey(HKEY hKeyParent, LPCWSTR lpszKeyName, REGSAM samDesired)
+BOOL CWinRegKeyFind::FindFirstSubKey(
+    HKEY    hKeyParent,
+    LPCWSTR lpszRegPath,
+    REGSAM  samDesired,
+    LPCWSTR lpszSubKeyName)
 {
     Reset();
 
 
     samDesired  |= KEY_ENUMERATE_SUB_KEYS;
-    LONG lRet = m_hKeyEnum.Open(hKeyParent, lpszKeyName, samDesired);
+    LONG lRet = m_hKeyEnum.Open(hKeyParent, lpszRegPath, samDesired);
     if (ERROR_SUCCESS != lRet)
         return FALSE;
 
 
     m_hKeyParent = hKeyParent;
-    m_strKeyName = lpszKeyName;
+    m_strKeyName = lpszRegPath;
+
+
+    if (lpszSubKeyName)
+    {
+        CRegKey hRegKey;
+        lRet = hRegKey.Open(m_hKeyEnum, lpszSubKeyName, samDesired);
+        if (ERROR_SUCCESS != lRet)
+        {
+            Reset();
+            return FALSE;
+        }
+
+
+        // 确保无法继续迭代
+        m_dwEnumIndex = ULONG_MAX;
+        return TRUE;
+    }
 
 
     return DoEnumRegKey();
@@ -49,14 +70,11 @@ BOOL CWinRegKeyFind::DoEnumRegKey()
         return FALSE;
 
     m_szSubKeyName[0] = L'\0';
-    m_ftLastWriteTime.dwHighDateTime = 0;
-    m_ftLastWriteTime.dwLowDateTime  = 0;
     DWORD dwKeyNameLength = _countof(m_szSubKeyName) - 1;
     LONG lRet = m_hKeyEnum.EnumKey(
         m_dwEnumIndex,
         m_szSubKeyName,
-        &dwKeyNameLength,
-        &m_ftLastWriteTime);
+        &dwKeyNameLength);
     if (ERROR_SUCCESS != lRet)
     {
         Reset();

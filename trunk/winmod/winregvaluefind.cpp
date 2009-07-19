@@ -54,7 +54,7 @@ BOOL CWinRegValueFind::DoEnumRegValue()
         &dwValueNameLength,
         NULL, &m_dwType, NULL, NULL);
     if (ERROR_MORE_DATA == lRet)
-    {   // 缓冲区长度不足
+    {
         m_lpszeValueName = m_strLongValueNameBuffer.GetBuffer(WIN_REG_VALUE_NAME_MAX_BUF_SIZE);
         dwValueNameLength = WIN_REG_VALUE_NAME_MAX_BUF_SIZE - 1;
         lRet = RegEnumValue(
@@ -89,9 +89,9 @@ HRESULT CWinRegValueFind::GetStringValue(CString& strValue, DWORD dwCchMaxLen)
         return E_HANDLE;
 
 
-    HRESULT hr = m_hKeyEnum.ExQueryStringValue(GetValueName(), strValue, dwCchMaxLen);
-    if (FAILED(hr))
-        return hr;
+    LONG lRet = m_hKeyEnum.ExQueryStringValue(GetValueName(), strValue, dwCchMaxLen);
+    if (ERROR_SUCCESS != lRet)
+        return AtlHresultFromWin32(lRet);
 
 
     return S_OK;

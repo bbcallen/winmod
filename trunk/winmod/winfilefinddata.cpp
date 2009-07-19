@@ -43,7 +43,7 @@ CString CWinFileFindData::GetFileNameBase() const
 
 CString CWinFileFindData::GetFileNameExt() const
 {
-    return ::PathFindExtension(m_findData.cFileName);
+    return CWinPathApi::FindExtension(m_findData.cFileName);
 }
 
 

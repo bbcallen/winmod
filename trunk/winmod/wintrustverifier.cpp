@@ -17,6 +17,7 @@
 
 using namespace WinMod;
 
+#define MAX_LOOP_OF_ENUM 5
 
 DWORD CWinTrustVerifier::VerifyFile(LPCWSTR pwszFileFullPath)
 {
@@ -74,14 +75,12 @@ DWORD CWinTrustVerifier::VerifyFileFast(LPCWSTR pwszFileFullPath, HANDLE hFile)
     assert(hFile && hFile != INVALID_HANDLE_VALUE);
     DWORD dwRet = 0;
 
-    // 判断数字签名是否被包含在PE文件内
     if (HasEmbeddedSignature(hFile))
     {
         dwRet = VerifyWinTrustFile(pwszFileFullPath, hFile);
         if (ERROR_SUCCESS == dwRet)
             return ERROR_SUCCESS;
 
-        // 如果有嵌入的数字签名，仍然有可能包含cat方式的数字签名
         dwRet = VerifyCatalogSignature(pwszFileFullPath, hFile);
         if (ERROR_SUCCESS == dwRet)
             return ERROR_SUCCESS;
@@ -102,13 +101,6 @@ DWORD CWinTrustVerifier::VerifyWinTrustFile(LPCWSTR pwszFileFullPath, HANDLE hFi
     GUID WinTrustVerifyGuid = WINTRUST_ACTION_GENERIC_VERIFY_V2;
     return VerifyEmbeddedSignature(pwszFileFullPath, hFile, WinTrustVerifyGuid);
 }
-
-//DWORD CWinTrustVerifier::VerifyDriverFile(LPCWSTR pwszFileFullPath, HANDLE hFile)
-//{
-//    assert(hFile && hFile != INVALID_HANDLE_VALUE);
-//    GUID DriverVerifyGuid = DRIVER_ACTION_VERIFY;
-//    return VerifyEmbeddedSignature(pwszFileFullPath, hFile, DriverVerifyGuid);
-//}
 
 
 // modified from MSDN
@@ -166,14 +158,15 @@ DWORD CWinTrustVerifier::VerifyEmbeddedSignature(LPCWSTR pwszFileFullPath, HANDL
     WinTrustData.dwStateAction          = 0;                // Default verification.
     WinTrustData.hWVTStateData          = NULL;             // Not applicable for default verification of embedded signature.
     WinTrustData.pwszURLReference       = NULL;             // Not used.
-    WinTrustData.dwProvFlags            = WTD_SAFER_FLAG;   // Default.
+    //WinTrustData.dwProvFlags            = WTD_SAFER_FLAG;   // !!! NOTE !!!  this flag may cause WinVerityTrust hang in XP/2k
+    WinTrustData.dwProvFlags            = WTD_REVOCATION_CHECK_NONE;    // Revocation checking is not performed.
     WinTrustData.dwUIContext            = 0;                // Not used.
     WinTrustData.pFile                  = &FileData;        // Set pFile.
 
     // WinVerifyTrust verifies signatures as specified by the GUID 
     // and Wintrust_Data.
     LONG lStatus = m_modWinTrust.WinVerifyTrust(
-        NULL,
+        (HWND)INVALID_HANDLE_VALUE,
         &WVTPolicyGUID,
         &WinTrustData);
 
@@ -241,6 +234,7 @@ DWORD CWinTrustVerifier::VerifyCatalogSignature(LPCWSTR pwszFileFullPath, HANDLE
 
 
 
+    DWORD dwEnumCounter = 0;
     // Look up catalog
     HCATINFO hPrevCat = NULL;
     HCATINFO hCatInfo = modWinTrust.CryptCATAdminEnumCatalogFromHash(
@@ -251,6 +245,12 @@ DWORD CWinTrustVerifier::VerifyCatalogSignature(LPCWSTR pwszFileFullPath, HANDLE
         &hPrevCat);
     while (hCatInfo)
     {
+
+
+        // limit loop of enumeration
+        if (dwEnumCounter++ > MAX_LOOP_OF_ENUM)
+            break;
+
         CATALOG_INFO CatInfo;
         memset(&CatInfo, 0, sizeof(CatInfo));
         CatInfo.cbStruct = sizeof(CATALOG_INFO);
@@ -281,7 +281,7 @@ DWORD CWinTrustVerifier::VerifyCatalogSignature(LPCWSTR pwszFileFullPath, HANDLE
 
 
             LONG lStatus = modWinTrust.WinVerifyTrust(
-                NULL,
+                (HWND)INVALID_HANDLE_VALUE,
                 &WVTPolicyGUID,
                 &WinTrustData);
 
@@ -349,34 +349,34 @@ BOOL CWinTrustVerifier::IsPEFile(HANDLE hFile)
 {
     assert(hFile && hFile != INVALID_HANDLE_VALUE);
 
-    // 定位MZ头
+    // locate MZ header
     DWORD nNewPos = ::SetFilePointer(hFile, 0, 0, FILE_BEGIN);
     if (nNewPos == INVALID_SET_FILE_POINTER)
         return FALSE;
 
-    // 读取MZ头
+    // read MZ header
     IMAGE_DOS_HEADER DosHeader;
     DWORD dwBytesRead;
     BOOL br = ::ReadFile(hFile, &DosHeader, sizeof(DosHeader), &dwBytesRead, NULL);
     if (!br || dwBytesRead != sizeof(DosHeader))
         return FALSE;
 
-    // 判断MZ特征
+    // check MZ magic number
     if (IMAGE_DOS_SIGNATURE != DosHeader.e_magic)
         return FALSE;
 
-    // 定位PE头
+    // local PE header
     nNewPos = ::SetFilePointer(hFile, DosHeader.e_lfanew, 0, FILE_BEGIN);
     if (nNewPos == INVALID_SET_FILE_POINTER)
         return FALSE;
 
-    // 读取PE头
+    // read PE header
     DWORD dwPeSign = 0;
     br = ::ReadFile(hFile, &dwPeSign, sizeof(DWORD), &dwBytesRead, NULL);
     if (!br || dwBytesRead != sizeof(DWORD))
         return FALSE;
     
-    // 判断PE特征
+    // check PE magic number
     if (IMAGE_NT_SIGNATURE != dwPeSign)
         return FALSE;
 

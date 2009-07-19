@@ -16,8 +16,7 @@
 
 NS_WINMOD_BEGIN
 
-// 支持多层目录的深度优先的文件遍历
-// .和..会自动跳过
+// skip . and ..
 class CWinFileFindDepthFirst: public CWinFileFindData
 {
 public:

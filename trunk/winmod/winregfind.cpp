@@ -52,10 +52,8 @@ BOOL CWinRegFindDepthFirst::FindNextKey(REGSAM samDesired)
         assert(pTopNode);
 
 
-        //////////////////////////////////////////////////////////////////////////
-        // 向下试探
         if (pTopNode->IsEndOfFind())
-        {   // 当前结点已经完成遍历
+        {
             m_findNodeStack.RemoveTailNoReturn();
             continue;
         }
@@ -69,23 +67,19 @@ BOOL CWinRegFindDepthFirst::FindNextKey(REGSAM samDesired)
         }
 
 
-        // 优先查找当前结点的子结点
         samDesired |= KEY_ENUMERATE_SUB_KEYS;
-        if (pSubNode->FindFirstSubKey(m_hKeyParent, pTopNode->GetFullKeyName(), samDesired))
+        if (pSubNode->FindFirstSubKey(m_hKeyParent, pTopNode->GetFullRegPath(), samDesired))
         {
             m_findNodeStack.AddTail(pSubNode);
             return TRUE;
         }
 
 
-        // 没有发现子结点,删除之
         delete pSubNode;
         pSubNode = NULL;
 
 
 
-        //////////////////////////////////////////////////////////////////////////
-        // 回溯,并查找路径上每个结点的兄弟结点
         while (!m_findNodeStack.IsEmpty())
         {
             pTopNode = m_findNodeStack.GetTail();

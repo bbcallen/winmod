@@ -37,16 +37,14 @@ public:
 
     void    Reset();
 
-    BOOL    FindFirstService(HKEY    hRootKey       = HKEY_LOCAL_MACHINE,
-                             LPCWSTR lpszControlSet = WINMOD_REGKEY_CURRENT_CONTRON_SET,
-                             REGSAM  samDesired     = KEY_ENUMERATE_SUB_KEYS);
+    BOOL    FindFirstService(REGSAM samDesired = KEY_ENUMERATE_SUB_KEYS);
 
     BOOL    FindNextService();
     BOOL    IsEndOfFind() const;
 
     /**
-    * @brief    获取服务类型
-    * @retval   ULONG_MAX                   0xFFFFFFFF  没有获取到服务类型
+    * @brief    Obtain service type
+    * @retval   ULONG_MAX                   0xFFFFFFFF  invalid service type
     * @retval   SERVICE_ADAPTER             0x00000004  Reserved.
     * @retval   SERVICE_FILE_SYSTEM_DRIVER  0x00000002  File system driver service.
     * @retval   SERVICE_KERNEL_DRIVER       0x00000001  Driver service.
@@ -58,8 +56,8 @@ public:
         
 
     /**
-    * @brief    获取服务启动方式
-    * @retval   ULONG_MAX                   0xFFFFFFFF  没有获取到服务启动方式
+    * @brief    Obtain start type
+    * @retval   ULONG_MAX                   0xFFFFFFFF  invalid start type
     * @retval   SERVICE_AUTO_START          0x00000002  A service started automatically by the service control manager during system startup. For more information, see Automatically Starting Services.
     * @retval   SERVICE_BOOT_START          0x00000000  A device driver started by the system loader. This value is valid only for driver services.
     * @retval   SERVICE_DEMAND_START        0x00000003  A service started by the service control manager when a process calls the StartService function. For more information, see Starting Services on Demand.
@@ -86,6 +84,11 @@ public:
 
     CString GetConvertedDescription() const;
 
+
+
+    HRESULT Disable();
+
+    HRESULT Remove();
 
 
 

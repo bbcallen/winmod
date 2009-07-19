@@ -84,7 +84,6 @@ HRESULT CWinTokenStack::Pop()
     
 
 
-    // µ¯³ö²¢»Ö¸´Õ»¶¥µÄtoken
     if (token.GetHandle())
     {
         bool br = token.Impersonate();
@@ -112,7 +111,6 @@ void CWinTokenStack::PopAll()
             ::CloseHandle(hToken);
     }
 
-    // µ¯³ö²¢»Ö¸´Õ»µ×µÄtoken
     if (!m_tokenStack.IsEmpty())
         Pop();
 }

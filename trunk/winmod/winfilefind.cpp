@@ -64,3 +64,8 @@ void CWinFileFind::Close()
         m_hContext = INVALID_HANDLE_VALUE;
     }
 }
+
+HANDLE CWinFileFind::GetHandle()
+{
+    return m_hContext;
+}

@@ -227,7 +227,6 @@ HRESULT CWinModuleEnumerator::EnumAllModules(DWORD dwModuleID)
     DWORD dwExpectedCount = 0;
     while (dwExpectedCount < dwReturnCount)
     {
-        // 数组不够大,需要重新分配新的大小
         dwExpectedCount = dwReturnCount;
 
         br = m_moduleList.SetCount(dwExpectedCount);
@@ -350,7 +349,7 @@ BOOL CWinProcessToolHelpEnumerator::FindProcessID(DWORD dwProcessID)
 
 HRESULT CWinProcessToolHelpEnumerator::EnumAllProcesses()
 {
-    // 临时获取DebugPrevilege
+    // obtain DebugPrevilege
     CWinTokenStack localPrivilege;
     localPrivilege.Push();
     localPrivilege.EnableDebugPrivilege();
