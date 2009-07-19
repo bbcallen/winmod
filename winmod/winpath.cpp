@@ -11,7 +11,9 @@
 #include <assert.h>
 #include <winnetwk.h>
 #include <shlobj.h>
+#include <strsafe.h>
 
+// used in CWinPathApi::IsDirectory
 #pragma comment(lib, "mpr.lib")
 
 using namespace WinMod;
@@ -73,48 +75,118 @@ HRESULT CWinPathApi::ExpandLongPathName(CString& strPathName)
     return S_OK;
 }
 
-void CWinPathApi::NormalizePathName(CString& strFullPathName)
+BOOL CWinPathApi::ExpandSpecialFolderPathAtBeginning(LPWSTR lpszPath, DWORD cchBuf, LPCWSTR lpszPattern, int csidl)
 {
-    ExpandLongPathName(strFullPathName);
-    strFullPathName.MakeLower();
-}
+    assert(lpszPath);
+    assert(lpszPattern);
+    assert(cchBuf >= MAX_PATH);
 
-
-BOOL CWinPathApi::ExpandSpecialFolderPathAtBeginning(CString& strPath, LPCWSTR lpPattern, int csidl)
-{
-    assert(lpPattern);
-
-    if (0 != StrNCmpI(strPath, lpPattern, (int)wcslen(lpPattern)))
+    // find pattern
+    size_t cchPatternLen = wcslen(lpszPattern);
+    if (0 != StrCmpNIW(lpszPath, lpszPattern, (int)min(cchPatternLen, (size_t)cchBuf)))
         return FALSE;
 
-    CString strNormalizedPath;
-    BOOL br = ::SHGetSpecialFolderPath(NULL, strNormalizedPath.GetBuffer(MAX_PATH), csidl, FALSE);
+    // retrieve csidl
+    WCHAR szSpecFolder[MAX_PATH];
+    BOOL br = ::SHGetSpecialFolderPath(NULL, szSpecFolder, csidl, FALSE);
     if (!br)
-    {
-        strNormalizedPath.ReleaseBuffer(0);
         return FALSE;
-    }
-    strNormalizedPath.ReleaseBuffer();
+
+    StringCchCat(szSpecFolder, MAX_PATH, L"\\");
+
+    // replace pattern at beginning
+    size_t cchSpecFolderLen = wcslen(szSpecFolder);
+
+    
+    // calculate new length
+    size_t cchOrigPathLen = wcslen(lpszPath);
+    assert(cchOrigPathLen + cchSpecFolderLen > cchPatternLen);
+    size_t cchNewPathLen  = cchOrigPathLen + cchSpecFolderLen - cchPatternLen;
+    if (cchOrigPathLen + cchSpecFolderLen <= cchPatternLen)
+        return FALSE;
+
+    if (cchNewPathLen + 1 >= cchBuf)
+        return FALSE;
+
+    // "memmove" can safely handle the situation where the source string overlaps the destination string 
+    // move string right after pattern
+    memmove(lpszPath + cchSpecFolderLen, lpszPath + cchPatternLen, sizeof(WCHAR) * (cchOrigPathLen - cchPatternLen));
+    memcpy(lpszPath, szSpecFolder, sizeof(WCHAR) * cchSpecFolderLen);
+    lpszPath[cchNewPathLen] = L'\0';
 
 
-    strNormalizedPath.AppendChar(L'\\');
-    strNormalizedPath.Append((LPCWSTR)strPath + wcslen(lpPattern));
-    strPath = strNormalizedPath;
     return TRUE;
 }
 
-BOOL CWinPathApi::ExpandPatternAtBeginning(CString& strPath, LPCWSTR lpPattern, LPCWSTR lpExpandAs)
+BOOL CWinPathApi::ExpandSpecialFolderPathAtBeginning(CString& strPath, LPCWSTR lpszPattern, int csidl)
 {
-    assert(lpPattern);
-    assert(lpExpandAs);
+    assert(lpszPattern);
 
-    if (0 != StrNCmpI(strPath, lpPattern, (int)wcslen(lpPattern)))
+    BOOL br = CWinPathApi::ExpandSpecialFolderPathAtBeginning(strPath.GetBuffer(MAX_PATH + 1), MAX_PATH, lpszPattern, csidl);
+    strPath.ReleaseBuffer();
+    return br;
+}
+
+BOOL CWinPathApi::ExpandPatternAtBeginning(LPWSTR lpszPath, DWORD cchBuf, LPCWSTR lpszPattern, LPCWSTR lpszExpandAs)
+{
+    assert(lpszPath);
+    assert(lpszPattern);
+    assert(lpszExpandAs);
+    assert(cchBuf);
+
+    // find pattern
+    size_t cchPatternLen = wcslen(lpszPattern);
+    if (0 != StrNCmpI(lpszPath, lpszPattern, (int)min(cchPatternLen, (size_t)cchBuf)))
         return FALSE;
 
-    CString strOrigPath;
-    strOrigPath.Append(lpExpandAs);
-    strOrigPath.Append((LPCWSTR)strPath + wcslen(lpPattern));
-    strPath = strOrigPath;
+
+    size_t cchExpandAsLen = wcslen(lpszExpandAs);
+
+
+    // calculate new length
+    size_t cchOrigPathLen = wcslen(lpszPath);
+    assert(cchOrigPathLen + cchExpandAsLen > cchPatternLen);
+    size_t cchNewPathLen  = cchOrigPathLen + cchExpandAsLen - cchPatternLen;
+    if (cchOrigPathLen + cchExpandAsLen <= cchPatternLen)
+        return FALSE;
+
+    if (cchNewPathLen + 1 >= cchBuf)
+        return FALSE;
+
+    // "memmove" can safely handle the situation where the source string overlaps the destination string 
+    // move string right after pattern
+    memmove(lpszPath + cchExpandAsLen, lpszPath + cchPatternLen, sizeof(WCHAR) * (cchOrigPathLen - cchPatternLen));
+    memcpy(lpszPath, lpszExpandAs, sizeof(WCHAR) * cchExpandAsLen);
+    lpszPath[cchNewPathLen] = L'\0';
+
+
+    return TRUE;
+}
+
+BOOL CWinPathApi::ExpandPatternAtBeginning(CString& strPath, LPCWSTR lpszPattern, LPCWSTR lpszExpandAs)
+{
+    assert(lpszPattern);
+    assert(lpszExpandAs);
+
+    int nMaxLen = strPath.GetLength() + (int)wcslen(lpszExpandAs);
+    BOOL br = CWinPathApi::ExpandPatternAtBeginning(strPath.GetBuffer(nMaxLen), nMaxLen, lpszPattern, lpszExpandAs);
+    strPath.ReleaseBuffer();
+    return br;
+}
+
+BOOL CWinPathApi::ExpandEnvironmentStrings(LPCWSTR lpszSrc, LPWSTR lpszDest, DWORD cchBuf)
+{
+    assert(lpszSrc);
+    assert(lpszDest);
+    assert(cchBuf);
+
+    DWORD dwLen = ::ExpandEnvironmentStrings(lpszSrc, lpszDest, cchBuf);
+    if (0 == dwLen)
+    {
+        StrCpyNW(lpszDest, lpszSrc, cchBuf);
+        return FALSE;
+    }
+
     return TRUE;
 }
 
@@ -122,39 +194,56 @@ BOOL CWinPathApi::ExpandEnvironmentStrings(CString& strPath)
 {
     DWORD dwLen = ::ExpandEnvironmentStrings(strPath, NULL, 0);
     if (0 == dwLen)
-        return GetLastError() ? AtlHresultFromLastError() : E_FAIL;
+        return FALSE;
 
 
     assert(dwLen <= WIN_PATH_MAX_UNICODE_PATH);
     if (dwLen > WIN_PATH_MAX_UNICODE_PATH)
-        return E_UNEXPECTED;
+        return FALSE;
 
 
     CString strLongPathName;
-    dwLen = ::ExpandEnvironmentStrings(strPath, strLongPathName.GetBuffer(dwLen), dwLen);
-    if (0 == dwLen)
+    BOOL br = CWinPathApi::ExpandEnvironmentStrings(strPath, strLongPathName.GetBuffer(dwLen), dwLen);
+    strLongPathName.ReleaseBuffer();
+    
+    if (br)
+        strPath = strLongPathName;
+
+    return br;
+}
+
+BOOL CWinPathApi::ExpandAsAccessiblePath(LPWSTR lpszPath, DWORD cchBuf)
+{
+    assert(lpszPath);
+    assert(cchBuf);
+
+    if (CWinPathApi::ExpandSpecialFolderPathAtBeginning(lpszPath, cchBuf, L"System32\\", CSIDL_SYSTEM))
     {
-        strLongPathName.ReleaseBuffer(0);
-        return GetLastError() ? AtlHresultFromLastError() : E_FAIL;
+        return TRUE;
+    }
+    else if (CWinPathApi::ExpandSpecialFolderPathAtBeginning(lpszPath, cchBuf, L"\\SystemRoot\\", CSIDL_WINDOWS))
+    {
+        return TRUE;
+    }
+    else if (CWinPathApi::ExpandPatternAtBeginning(lpszPath, cchBuf, L"\\??\\", L""))
+    {
+        return TRUE;
     }
 
-
-    strLongPathName.ReleaseBuffer();
-    strPath = strLongPathName;
-    return S_OK;
+    return FALSE;
 }
 
 BOOL CWinPathApi::ExpandAsAccessiblePath(CString& strPath)
 {
-    if (ExpandSpecialFolderPathAtBeginning(strPath, L"System32\\", CSIDL_SYSTEM))
+    if (CWinPathApi::ExpandSpecialFolderPathAtBeginning(strPath, L"System32\\", CSIDL_SYSTEM))
     {
         return TRUE;
     }
-    else if (ExpandSpecialFolderPathAtBeginning(strPath, L"\\SystemRoot\\", CSIDL_WINDOWS))
+    else if (CWinPathApi::ExpandSpecialFolderPathAtBeginning(strPath, L"\\SystemRoot\\", CSIDL_WINDOWS))
     {
         return TRUE;
     }
-    else if (ExpandPatternAtBeginning(strPath, L"\\??\\", L""))
+    else if (CWinPathApi::ExpandPatternAtBeginning(strPath, L"\\??\\", L""))
     {
         return TRUE;
     }
@@ -483,7 +572,7 @@ BOOL CWinPathApi::IsRoot(LPCWSTR pszPath)
 
         LPCWSTR lpNextBackSlash = ::StrChrW(pszPath + 1, L'\\');
         if (!lpNextBackSlash)
-            return TRUE;    // 只有服务器名
+            return TRUE;    // only server name
 
         // prefix + "\\"
         if (lpNextBackSlash == pszPath)
@@ -955,9 +1044,9 @@ void CWinPath::RemoveArgs()
     {
         switch (m_strPath[i])
         {
-        case L'\"': // 不移除空格中的引号
+        case L'\"':
             return;
-        case L' ' :  // 遇到空格截断
+        case L' ' :
             m_strPath.Truncate(i + 1);
             m_strPath.TrimRight();
             return;
@@ -1186,14 +1275,14 @@ BOOL CWinPath::IsExisting() const
 
 void CWinPath::RemoveSingleArg()
 {
-    m_strPath.Trim();  // 先清除多余的空格
+    m_strPath.Trim();
     for (int i = m_strPath.GetLength(); i > 0; --i)
     {
         switch (m_strPath[i - 1])
         {
-        case L'\"': // 不移除空格中的引号
+        case L'\"':
             return;
-        case L' ':  // 遇到空格截断
+        case L' ':
             m_strPath.Truncate(i);
             m_strPath.TrimRight();
             return;

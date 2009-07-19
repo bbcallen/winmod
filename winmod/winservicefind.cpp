@@ -25,14 +25,15 @@ using namespace WinMod;
 #define WINMOD_REGVALUE_SERVICES_Service        L"ServiceDll"   ///< Services\\..\\Parameters\\ServiceDll
 
 
-BOOL CWinServiceFind::FindFirstService(HKEY hRootKey, LPCWSTR lpszControlSet, REGSAM samDesired)
+BOOL CWinServiceFind::FindFirstService(REGSAM samDesired)
 {
-    assert(hRootKey);
-    assert(lpszControlSet);
     Reset();
 
     samDesired |= KEY_ENUMERATE_SUB_KEYS;
-    BOOL bFind = m_hRegKeyFind.FindFirstSubKey(hRootKey, lpszControlSet, samDesired);
+    BOOL bFind = m_hRegKeyFind.FindFirstSubKey(
+        HKEY_LOCAL_MACHINE,
+        WINMOD_REGKEY_CURRENT_CONTRON_SET,
+        samDesired);
     if (!bFind)
     {
         Reset();
@@ -75,23 +76,24 @@ void CWinServiceFind::DoReadStandardValues()
     m_dwServiceStart    = ULONG_MAX;
 
 
-    CString    strKeyName = m_hRegKeyFind.GetFullKeyName();
+    CString    strRegPath = m_hRegKeyFind.GetFullRegPath();
     CWinRegKey hRegKeyService;
-    LONG lRet = hRegKeyService.Open(m_hRegKeyFind.m_hKeyParent, strKeyName, KEY_QUERY_VALUE);
+    LONG lRet = hRegKeyService.Open(m_hRegKeyFind.m_hKeyParent, strRegPath, KEY_QUERY_VALUE);
     if (ERROR_SUCCESS == lRet)
     {   // ..\\Service\\[ImagePath]
-        HRESULT hr = hRegKeyService.ExQueryStringValue(WINMOD_REGVALUE_SERVICES_IMAGEPATH, m_imagePath);
-        if (FAILED(hr))
+        LONG lRet = hRegKeyService.ExQueryStringValue(WINMOD_REGVALUE_SERVICES_IMAGEPATH, m_imagePath.m_strPath);
+        if (ERROR_SUCCESS != lRet)
             m_imagePath = L"";              // no return
 
         // ..\\Service\\[DisplayName]
-        hr = hRegKeyService.ExQueryStringValue(WINMOD_REGVALUE_SERVICES_DISPLAYNAME, m_strDisplayName);
-        if (FAILED(hr))
+        // todo: some services may use REG_MULTI_SZ here -_-b...
+        lRet = hRegKeyService.ExQueryStringValue(WINMOD_REGVALUE_SERVICES_DISPLAYNAME, m_strDisplayName);
+        if (ERROR_SUCCESS != lRet)
             m_strDisplayName = L"";         // no return
 
         // ..\\Service\\[Description]
-        hr = hRegKeyService.ExQueryStringValue(WINMOD_REGVALUE_SERVICES_DESCRIPTION, m_strDescription);
-        if (FAILED(hr))
+        lRet = hRegKeyService.ExQueryStringValue(WINMOD_REGVALUE_SERVICES_DESCRIPTION, m_strDescription);
+        if (ERROR_SUCCESS != lRet)
             m_strDescription = L"";         // no return
 
         // ..\\Service\\[Type]
@@ -107,16 +109,16 @@ void CWinServiceFind::DoReadStandardValues()
 
     
     if (SERVICE_WIN32_SHARE_PROCESS == m_dwServiceType)
-    {   // 对于 svchost.exe 这一类的服务,还要检查ServiceDll
-        assert(!strKeyName.IsEmpty() && L'\\' != strKeyName[strKeyName.GetLength() - 1]);
-        strKeyName.AppendChar(L'\\');
-        strKeyName.Append(WINMOD_REGSUBKEY_PARAMETERS);
+    {
+        assert(!strRegPath.IsEmpty() && L'\\' != strRegPath[strRegPath.GetLength() - 1]);
+        strRegPath.AppendChar(L'\\');
+        strRegPath.Append(WINMOD_REGSUBKEY_PARAMETERS);
         CWinRegKey hRegKeyParameters;
-        lRet = hRegKeyParameters.Open(m_hRegKeyFind.m_hKeyParent, strKeyName, KEY_QUERY_VALUE);
+        lRet = hRegKeyParameters.Open(m_hRegKeyFind.m_hKeyParent, strRegPath, KEY_QUERY_VALUE);
         if (ERROR_SUCCESS == lRet)
         {   // ..\\Service\\Parameters\\[ServiceDll]
-            HRESULT hr = hRegKeyParameters.ExQueryStringValue(WINMOD_REGVALUE_SERVICES_Service, m_serviceDll);
-            if (FAILED(hr))
+            LONG lRet = hRegKeyParameters.ExQueryStringValue(WINMOD_REGVALUE_SERVICES_Service, m_serviceDll.m_strPath);
+            if (ERROR_SUCCESS != lRet)
                 m_serviceDll = L"";              // no return
         }
     }
@@ -172,7 +174,7 @@ CString CWinServiceFind::DoConvertString(const CString& strMessage) const
         return L"";
 
 
-    // 不需要加载资源dll,直接返回显示名称
+    // no resource dll
     if (L'@' != strMessage[0])
         return strMessage;
 
@@ -182,12 +184,11 @@ CString CWinServiceFind::DoConvertString(const CString& strMessage) const
         return L"";
 
 
-    // 寻找资源id
+    // find resource id
     LPCWSTR lpResourceID = (LPCWSTR)strMessage + nPos + 1;
     DWORD   dwResourceID = StrToInt(lpResourceID);
 
 
-    // 寻找分隔资源id的逗号
     CString strResourceFile = (LPCWSTR)strMessage + 1;
     --nPos;
     while (nPos > 0 && strResourceFile[nPos] != L',')
@@ -195,7 +196,7 @@ CString CWinServiceFind::DoConvertString(const CString& strMessage) const
         --nPos;
     }
 
-    // 逗号前的部分截取为资源文件路径
+    // truncate path
     strResourceFile.Truncate(nPos);
     CWinPathApi::ExpandEnvironmentStrings(strResourceFile);
     CWinPathApi::ExpandAsAccessiblePath(strResourceFile);
@@ -215,4 +216,36 @@ CString CWinServiceFind::DoConvertString(const CString& strMessage) const
 
 
     return CString(szBuf);
+}
+
+
+HRESULT CWinServiceFind::Disable()
+{
+    CString    strRegPath = m_hRegKeyFind.GetFullRegPath();
+    CWinRegKey hRegKeyService;
+    LONG lRet = hRegKeyService.Open(m_hRegKeyFind.m_hKeyParent, strRegPath, KEY_SET_VALUE);
+    if (ERROR_SUCCESS != lRet)
+    {
+        return AtlHresultFromWin32(lRet);
+    }
+
+    lRet = hRegKeyService.SetDWORDValue(WINMOD_REGVALUE_SERVICES_START, SERVICE_DISABLED);
+    if (ERROR_SUCCESS != lRet)
+    {
+        return AtlHresultFromWin32(lRet);
+    }
+
+    return S_OK;
+}
+
+HRESULT CWinServiceFind::Remove()
+{
+    CString strRegPath = m_hRegKeyFind.GetFullRegPath();
+    LONG    lRet = SHDeleteKey(HKEY_LOCAL_MACHINE, strRegPath);
+    if (ERROR_SUCCESS != lRet)
+    {
+        return AtlHresultFromWin32(lRet);
+    }
+
+    return S_OK;
 }

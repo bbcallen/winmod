@@ -31,7 +31,7 @@ public:
 
     LPCWSTR GetSubKeyName() const;
 
-    CString GetFullKeyName() const;
+    CString GetFullRegPath() const;
 
     const FILETIME& GetSubKeyLastWriteTime() const;
 
@@ -86,7 +86,7 @@ inline LPCWSTR CWinRegFindDepthFirst::GetSubKeyName() const
     return pTopNode->GetSubKeyName();
 }
 
-inline CString CWinRegFindDepthFirst::GetFullKeyName() const
+inline CString CWinRegFindDepthFirst::GetFullRegPath() const
 {
     assert(!IsEndOfFind());
     if (IsEndOfFind())
@@ -94,18 +94,7 @@ inline CString CWinRegFindDepthFirst::GetFullKeyName() const
 
     CWinRegKeyFind* pTopNode = m_findNodeStack.GetTail();
     assert(pTopNode);
-    return pTopNode->GetFullKeyName();
-}
-
-inline const FILETIME& CWinRegFindDepthFirst::GetSubKeyLastWriteTime() const
-{
-    assert(!IsEndOfFind());
-    if (IsEndOfFind())
-        return m_ftZero;
-
-    CWinRegKeyFind* pTopNode = m_findNodeStack.GetTail();
-    assert(pTopNode);
-    return pTopNode->GetSubKeyLastWriteTime();
+    return pTopNode->GetFullRegPath();
 }
 
 NS_WINMOD_END

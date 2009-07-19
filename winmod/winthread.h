@@ -34,7 +34,7 @@ public:
 
     DWORD   WaitExit(DWORD dwMilliseconds);
     BOOL    IsExit();
-    void    Terminate(DWORD dwExitCode = 1);
+    //void    Terminate(DWORD dwExitCode = 1);
 
     DWORD   Suspend();
     DWORD   Resume();
@@ -97,7 +97,7 @@ inline HRESULT CWinThread::Create(IWinRunnable* piRunnable)
 
 inline HRESULT CWinThread::CreateNoCRT(IWinRunnable* piRunnable)
 {
-    assert(m_h);
+    assert(!m_h);
     assert(piRunnable);
     if (m_h)
         return AtlHresultFromWin32(ERROR_ALREADY_INITIALIZED);
@@ -124,11 +124,11 @@ inline BOOL CWinThread::IsExit()
     return WAIT_TIMEOUT != WaitExit(0);
 }
 
-inline void CWinThread::Terminate(DWORD dwExitCode)
-{
-    assert(m_h);
-    ::TerminateThread(m_h, dwExitCode);
-}
+//inline void CWinThread::Terminate(DWORD dwExitCode)
+//{
+//    assert(m_h);
+//    ::TerminateThread(m_h, dwExitCode);
+//}
 
 
 inline DWORD CWinThread::Suspend()

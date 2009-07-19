@@ -14,56 +14,67 @@
 
 NS_WINMOD_BEGIN
 
-// 未完全实现,不建议使用
+/// stateless path methods, path can be greater than MAX_PATH
 class CWinPathApi
 {
 public:
-    enum
+
+    /// constant
+    enum EM_WIN_PATH_API_CONST
     {
-        WIN_PATH_MAX_UNICODE_PATH           = 32767 + 4,
-        WIN_PATH_UNICODE_PATH_PREFIX        = 4,
-        WIN_PATH_UNICODE_UNC_PATH_PREFIX    = 7,
+        WIN_PATH_MAX_UNICODE_PATH           = 32767 + 4,    ///< max size of buffer to store path, in bytes
+        WIN_PATH_UNICODE_PATH_PREFIX        = 4,            ///< length of "\\\\??\\"
+        WIN_PATH_UNICODE_UNC_PATH_PREFIX    = 7,            ///< length of "\\\\??\\UNC\\"
     };
 
+    /// see Win32 API GetFullPathName
     static HRESULT  ExpandFullPathName(CString& strFullPathName);
 
+    /// see Win32 API GetLongPathName
     static HRESULT  ExpandLongPathName(CString& strFullPathName);
 
-    // long path, lower case
-    static void     NormalizePathName(CString& strFullPathName);
 
+    /// replace 'lpPattern' at begging of 'strPath' with 'csidl'
+    static BOOL     ExpandSpecialFolderPathAtBeginning(LPWSTR lpszPath, DWORD cchBuf, LPCWSTR lpszPattern, int csidl);
+    static BOOL     ExpandSpecialFolderPathAtBeginning(CString& strPath, LPCWSTR lpszPattern, int csidl);
 
-    // replace 'lpPattern' at begging of 'strPath' with 'csidl'
-    static BOOL     ExpandSpecialFolderPathAtBeginning(CString& strPath, LPCWSTR lpPattern, int csidl);
+    /// replace 'lpPattern' at begging of 'strPath' with 'lpExpandAs'
+    static BOOL     ExpandPatternAtBeginning(LPWSTR lpszPath, DWORD cchBuf, LPCWSTR lpszPattern, LPCWSTR lpszExpandAs);
+    static BOOL     ExpandPatternAtBeginning(CString& strPath, LPCWSTR lpszPattern, LPCWSTR lpszExpandAs);
 
-    // replace 'lpPattern' at begging of 'strPath' with 'lpExpandAs'
-    static BOOL     ExpandPatternAtBeginning(CString& strPath, LPCWSTR lpPattern, LPCWSTR lpExpandAs);
-
+    /// see Win32 API ExpandEnvironmentStrings
+    static BOOL     ExpandEnvironmentStrings(LPCWSTR lpszSrc, LPWSTR lpszDest, DWORD cchBuf);
     static BOOL     ExpandEnvironmentStrings(CString& strPath);
 
 
-    // replace unaccessible path, such as '\??\' '\\SystemRoot'
+    /// replace special string in unaccessible path, such as '%SYSTEM%' '\??\' '\\SystemRoot'
+    static BOOL     ExpandAsAccessiblePath(LPWSTR lpszPath, DWORD cchBuf);
     static BOOL     ExpandAsAccessiblePath(CString& strPath);
 
 
-
+    /// check if path begin with "\\\\??\\" or "\\\\??\\UNC\\"
     static BOOL     HasUnicodePrefix(LPCWSTR pszPath);
 
-    // for non-unicode path, return after "\\\\"
-    // for unicode path, return after "\\\\?\\UNC\\"
-    // for else, return whole string
+    // for non-unicode unc path, it returns the position right after first "\\\\"
+    // for unicode path, it returns the position right after "\\\\?\\" or "\\\\?\\UNC\\"
+    // for other case, it returns the whole string
     static LPCWSTR  FindAfterAnyPrefix(LPCWSTR pszPath);
 
+    // for non-unicode unc path, it returns the position right after first "\\\\"
+    // for unicode path, it returns the position right after "\\\\?\\"
+    // for other case, it returns the whole string
     static LPCWSTR  FindAfterUnicodePrefix(LPCWSTR pszPath);
 
     static LPCWSTR  FindFileName(LPCWSTR pszPath);
 
-
     static LPCWSTR  FindExtension(LPCWSTR pszPath);
 
+    /// create short cut
     static HRESULT  CreateLnkFile(LPCWSTR pszPath, LPCWSTR pszDesc, LPCWSTR pszLnkFilePath);
+    /// resolve short cut
     static HRESULT  ResolveLnkFile(LPCWSTR pszLnkFile, CString& strTargetPath, DWORD dwFlag = SLR_NOUPDATE | SLR_NOTRACK | SLR_NOSEARCH | SLR_NO_UI);
 
+    /// path is "." or ".."
     static BOOL     IsDots(LPCWSTR pszPath);
 
     static BOOL     IsDirectory(LPCWSTR pszPath);
@@ -78,13 +89,11 @@ public:
 };
 
 
-
-// 未完全实现,不建议使用
+/// path class
 class CWinPath
 {
 // Constructors
 public:
-
     CWinPath();
 	CWinPath(const CWinPath& path);
 	CWinPath(LPCWSTR pszPath);
@@ -92,8 +101,6 @@ public:
 
 // Operators
 public:
-    operator const CString& () const;
-    operator CString& ();
     operator LPCWSTR() const;
     CWinPath& operator+=(LPCWSTR pszMore);
 
@@ -171,16 +178,6 @@ inline CWinPath::CWinPath(const CWinPath& path):
 inline CWinPath::CWinPath(LPCWSTR pszPath):
     m_strPath(pszPath )
 {
-}
-
-inline CWinPath::operator const CString& () const throw()
-{
-    return m_strPath;
-}
-
-inline CWinPath::operator CString& () throw()
-{
-    return m_strPath;
 }
 
 inline CWinPath::operator LPCWSTR() const throw()
