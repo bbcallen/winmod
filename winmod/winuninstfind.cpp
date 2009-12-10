@@ -72,19 +72,19 @@ void CWinUninstFind::DoReadStandardValues()
     if (ERROR_SUCCESS == lRet)
     {   // ..\\Uninstall\\..\\[DisplayName]
         LONG lRet = hRegKeyUninstall.QueryDWORDValue(WINMOD_REGVALUE_UNINST_SYSTEMCOMPONENT, m_dwSysmteComponent);
-        if (ERROR_SUCCESS == lRet)
+        if (ERROR_SUCCESS != lRet)
             m_dwSysmteComponent = 0;            // no return
 
         lRet = hRegKeyUninstall.ExQueryStringValue(WINMOD_REGVALUE_UNINST_DISPLAYNAME, m_strDisplayName);
-        if (ERROR_SUCCESS == lRet)
+        if (ERROR_SUCCESS != lRet)
             m_strDisplayName = L"";             // no return
 
         lRet = hRegKeyUninstall.ExQueryStringValue(WINMOD_REGVALUE_UNINST_PUBLISHER, m_strPublisher);
-        if (ERROR_SUCCESS == lRet)
+        if (ERROR_SUCCESS != lRet)
             m_strPublisher = L"";               // no return
 
         lRet = hRegKeyUninstall.ExQueryStringValue(WINMOD_REGVALUE_UNINST_UNINSTALLSTRING, m_strUninstallString);
-        if (ERROR_SUCCESS == lRet)
+        if (ERROR_SUCCESS != lRet)
             m_strUninstallString = L"";         // no return
     }
 }

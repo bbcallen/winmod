@@ -8,15 +8,220 @@
 #include "stdafx.h"
 #include "winprocessenumerator.h"
 
+#include <sddl.h>
 #include <atlpath.h>
+#include "winmod\winosver.h"
 #include "winmod\winpath.h"
-#include "winmod\wintokenstack.h"
 
 #pragma comment(lib, "psapi.lib")
 
-#define UNICODE_MAX_PATH 32768
-
 using namespace WinMod;
+
+HRESULT CWinProcessApi::ObtainImpersonateToken(DWORD dwProcessId, HANDLE& hTokenObtain)
+{
+    CHandle hProcess;
+    hProcess.Attach(::OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, dwProcessId));
+    if (!hProcess)
+        return GetLastError() ? AtlHresultFromLastError() : E_FAIL;
+
+
+
+    CHandle hTokenDuplicate;
+    HANDLE  hT = NULL;
+    BOOL bRet = ::OpenProcessToken(hProcess, TOKEN_ALL_ACCESS, &hT);
+    if (!bRet)
+        return GetLastError() ? AtlHresultFromLastError() : E_FAIL;
+    hTokenDuplicate.Attach(hT);
+    hT = NULL;
+
+
+
+    if (CWinOSVer::IsVistaOrLater())
+    {
+        TOKEN_LINKED_TOKEN linkedToken = {0};
+
+        DWORD dwSize = sizeof linkedToken;
+
+        bRet = ::GetTokenInformation(hTokenDuplicate, TokenLinkedToken, &linkedToken, dwSize, &dwSize);
+        if (!bRet)
+            return GetLastError() ? AtlHresultFromLastError() : E_FAIL;
+
+        hTokenDuplicate.Close();
+        hTokenDuplicate.Attach(linkedToken.LinkedToken);
+        linkedToken.LinkedToken = NULL;
+    }
+
+
+    bRet = ::DuplicateTokenEx(
+        hTokenDuplicate, 
+        TOKEN_ALL_ACCESS, 
+        0, 
+        SecurityImpersonation, 
+        TokenPrimary, 
+        &hT);
+    if (!bRet)
+        return GetLastError() ? AtlHresultFromLastError() : E_FAIL;
+    hTokenDuplicate.Close();
+    hTokenDuplicate.Attach(hT);
+    hT = NULL;
+
+
+    if (CWinOSVer::IsVistaOrLater())
+    {
+        {
+            PWSTR szIntegritySid = L"S-1-16-12288"; //high
+            PSID  pIntegritySid  = NULL;
+            TOKEN_MANDATORY_LABEL til = {0};
+
+            bRet = ::ConvertStringSidToSid(szIntegritySid, &pIntegritySid);
+            if (!bRet)
+                return GetLastError() ? AtlHresultFromLastError() : E_FAIL;
+
+            til.Label.Attributes = SE_GROUP_INTEGRITY;
+            til.Label.Sid = pIntegritySid;
+
+            bRet = ::SetTokenInformation(hTokenDuplicate, TokenIntegrityLevel,  &til, sizeof(TOKEN_MANDATORY_LABEL));
+            if (!bRet)
+                return GetLastError() ? AtlHresultFromLastError() : E_FAIL;
+
+            if (pIntegritySid)
+            {
+                ::LocalFree((HLOCAL)pIntegritySid);
+                pIntegritySid = NULL;
+            }
+        }
+    }
+
+    hTokenObtain = hTokenDuplicate.Detach();
+    return S_OK;
+}
+
+
+
+
+HRESULT CWinProcessApi::ExecuteAsDesktopUser(
+    LPCWSTR                 lpszExePath,
+    LPCWSTR                 lpszCommandLine,
+    DWORD                   dwDesktopProcessId,
+    PROCESS_INFORMATION*    pProcessInformation)
+{
+    HRESULT hr = E_FAIL;
+    CHandle hToken;
+    HANDLE  hT = NULL;
+    if (dwDesktopProcessId)
+    {   // 获取指定进程的token
+        hr = CWinProcessApi::ObtainImpersonateToken(dwDesktopProcessId, hT);
+        if (SUCCEEDED(hr))
+        {
+            hToken.Attach(hT);
+            hT = NULL;
+        }
+    }
+
+
+
+    if (!hToken)
+    {  // 获取explorer的token
+        hr = ObtainExplorerToken(hT);
+        if (FAILED(hr))
+            return hr;
+
+        hToken.Attach(hT);
+        hT = NULL;
+    }
+
+
+
+
+
+    STARTUPINFO         si;
+    PROCESS_INFORMATION pi;
+    memset(&si, 0, sizeof(si));
+    memset(&pi, 0, sizeof(pi));
+
+
+    si.cb        = sizeof(STARTUPINFO);
+    si.lpDesktop = L"winsta0\\default";
+
+
+    // 以指定token创建进程
+    CString strCommandLine = lpszCommandLine;
+    BOOL bRet = ::CreateProcessAsUser(        
+        hToken,
+        lpszExePath,
+        (LPWSTR)(LPCWSTR)strCommandLine,
+        NULL,
+        NULL,
+        FALSE,
+        NORMAL_PRIORITY_CLASS,
+        NULL,
+        NULL,
+        &si,
+        &pi);
+    if (!bRet)
+        return GetLastError() ? AtlHresultFromLastError() : E_FAIL;
+
+
+
+    if (pProcessInformation)
+    {
+        *pProcessInformation = pi;
+    }
+    else
+    {
+        ::CloseHandle(pi.hThread);
+        ::CloseHandle(pi.hProcess);
+    }
+
+
+    return S_OK;
+}
+
+
+
+HRESULT CWinProcessApi::ObtainExplorerToken(HANDLE& hTokenObtain)
+{
+    CWinProcessEnumerator hProcEnum;
+    HRESULT hr = hProcEnum.EnumAllProcesses();
+    if (FAILED(hr))
+        return hr;
+
+
+    WCHAR szPath[MAX_PATH + 1];
+    ::GetWindowsDirectory(szPath, MAX_PATH);
+    ::PathAppend(szPath, L"explorer.exe");
+
+
+    BOOL bFind = hProcEnum.FindFirstProcess();
+    for (NULL; bFind; bFind = hProcEnum.FindNextProcess())
+    {
+        CString strProcPath;
+        hr = hProcEnum.GetProcessPath(strProcPath);
+        if (FAILED(hr))
+            continue;
+
+        if (0 != strProcPath.CompareNoCase(szPath))
+            continue;
+
+        hr = CWinProcessApi::ObtainImpersonateToken(hProcEnum.GetProcessID(), hTokenObtain);
+        if (FAILED(hr))
+            continue;
+
+        return S_OK;
+    }
+
+
+    return E_FAIL;
+}
+
+
+
+
+
+
+
+
+
 
 CWinProcessEnumerator::CWinProcessEnumerator()
 {
@@ -183,8 +388,6 @@ HRESULT CWinProcessEnumerator::GetProcessName(CString& strProcessName)
     return S_OK;
 }
 
-
-
 void CWinProcessEnumerator::Reset()
 {
     m_procIndex = 0;
@@ -297,6 +500,10 @@ HRESULT CWinModuleEnumerator::GetModulePath(CString& strPath)
 }
 
 
+HRESULT CWinProcessEnumerator::ObtainImpersonateToken(HANDLE& hTokenObtain)
+{
+    return CWinProcessApi::ObtainImpersonateToken(GetProcessID(), hTokenObtain);
+}
 
 
 

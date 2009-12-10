@@ -8,9 +8,10 @@
 #ifndef WINMODULE_H
 #define WINMODULE_H
 
+#include <atlbase.h>
 #include "winmodbase.h"
 
-
+NS_WINMOD_BEGIN
 
 class CWinModule
 {
@@ -141,5 +142,6 @@ inline BOOL CWinModule::IsValid()
     return NULL != m_hLib;
 }
 
+NS_WINMOD_END
 
 #endif//WINMODULE_H

@@ -173,7 +173,10 @@ inline DWORD WINAPI CWinThread::RunThreadFuncNoCRT(LPVOID pParam)
 {
     IWinRunnable* pThis = (IWinRunnable*)pParam;
 
-    return pThis->Run();
+    if (pThis)
+        return pThis->Run();
+
+    return 0;
 }
 
 

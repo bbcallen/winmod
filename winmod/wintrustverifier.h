@@ -19,16 +19,11 @@ class CWinTrustVerifier
 {
 public:
 
-
     DWORD   VerifyFile(LPCWSTR pwszFileFullPath);
 
     DWORD   VerifyFile(LPCWSTR pwszFileFullPath, HANDLE hFile);
 
-    DWORD   VerifyFileFast(LPCWSTR pwszFileFullPath);
-
-    DWORD   VerifyFileFast(LPCWSTR pwszFileFullPath, HANDLE hFile);
-
-    DWORD   VerifyWinTrustFile(LPCWSTR pwszFileFullPath, HANDLE hFile);
+    DWORD   VerifyEmbeddedWinTrustFile(LPCWSTR pwszFileFullPath, HANDLE hFile);
 
     DWORD   VerifyEmbeddedSignature(LPCWSTR pwszFileFullPath, HANDLE hFile, GUID& policyGUID);
 

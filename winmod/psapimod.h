@@ -8,7 +8,6 @@
 #ifndef PSAPIMOD_H
 #define PSAPIMOD_H
 
-
 #include <psapi.h>
 #include "winmod\winmodule.h"
 

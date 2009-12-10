@@ -43,6 +43,7 @@ BOOL CWinFileFindDepthFirst::FindFirstFile(
     m_pathParent.m_strPath = pszDirectory;
     m_pathParent.ExpandFullPathName();
     m_pathParent.ExpandLongPathName();
+    m_pathParent.AddUnicodePrefix();
 
 
 
@@ -210,7 +211,8 @@ void CWinFileFindDepthFirst::PushNode()
 {
     assert(INVALID_HANDLE_VALUE != m_hContext);
 
-    m_pathParent.Append(CWinFileFindData::GetFileName());
+    m_pathParent.AddBackslash();
+    m_pathParent.m_strPath.Append(CWinFileFindData::GetFileName());
 
     POSITION pos = m_findStack.AddTail();
     CWinFileFindNode& node = m_findStack.GetAt(pos);

@@ -10,8 +10,10 @@
 
 #include <assert.h>
 #include <winnetwk.h>
+#include <winioctl.h>
 #include <shlobj.h>
 #include <strsafe.h>
+#include <atlfile.h>
 
 // used in CWinPathApi::IsDirectory
 #pragma comment(lib, "mpr.lib")
@@ -204,11 +206,14 @@ BOOL CWinPathApi::ExpandEnvironmentStrings(CString& strPath)
 
     CString strLongPathName;
     BOOL br = CWinPathApi::ExpandEnvironmentStrings(strPath, strLongPathName.GetBuffer(dwLen), dwLen);
-    strLongPathName.ReleaseBuffer();
-    
-    if (br)
-        strPath = strLongPathName;
+    if (!br)
+    {
+        strLongPathName.ReleaseBuffer(0);
+        return br;
+    }
 
+    strLongPathName.ReleaseBuffer();
+    strPath = strLongPathName;
     return br;
 }
 
@@ -349,10 +354,9 @@ LPCWSTR CWinPathApi::FindExtension(LPCWSTR pszPath)
     return lpExtension ? lpExtension : pszPath;
 }
 
-HRESULT CWinPathApi::CreateLnkFile(LPCWSTR pszPath, LPCWSTR pszDesc, LPCWSTR pszLnkFilePath)
+HRESULT CWinPathApi::CreateLnkFile(LPCWSTR pszPath, LPCWSTR pszArguments, LPCWSTR pszDesc, LPCWSTR pszLnkFilePath)
 {
     assert(pszPath);
-    assert(pszDesc);
     assert(pszLnkFilePath);
 
     CComPtr<IShellLink> spiShellLink;
@@ -383,9 +387,21 @@ HRESULT CWinPathApi::CreateLnkFile(LPCWSTR pszPath, LPCWSTR pszDesc, LPCWSTR psz
     if (FAILED(hr))
         return hr;
 
-    hr = spiShellLink->SetDescription(pszDesc);
-    if (FAILED(hr))
-        return hr;
+
+    if (pszArguments)
+    {
+        hr = spiShellLink->SetArguments(pszArguments);
+        if (FAILED(hr))
+            return hr;
+    }
+
+    if (pszDesc)
+    {
+        hr = spiShellLink->SetDescription(pszDesc);
+        if (FAILED(hr))
+            return hr;
+    }
+
 
 
     // Write the shortcut to disk
@@ -698,7 +714,39 @@ BOOL CWinPathApi::IsLnkFile(LPCWSTR pszPath)
     return TRUE;
 }
 
+BOOL CWinPathApi::IsDeviceAccessible(WCHAR cRoot)
+{
+    WCHAR szRootPath[MAX_PATH] = L"\\\\?\\";
+    szRootPath[4] = cRoot;
+    szRootPath[5] = L':';
+    szRootPath[6] = L'\0';
 
+
+
+    BOOL bAccessible = FALSE;
+    CAtlFile hDevice;
+    HRESULT hr = hDevice.Create(
+        szRootPath,
+        GENERIC_READ,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        OPEN_EXISTING);
+    if (SUCCEEDED(hr))
+    {
+        DWORD dwBytesAct  = 0;
+        bAccessible = ::DeviceIoControl(  
+            hDevice,  
+            IOCTL_DISK_CHECK_VERIFY,  
+            NULL,  
+            0,  
+            NULL,  
+            0,  
+            &dwBytesAct,  
+            NULL);
+    }
+
+
+    return bAccessible;
+}
 
 
 
@@ -1361,4 +1409,18 @@ HRESULT CWinPath::ExpandFullPathName()
 HRESULT CWinPath::ExpandLongPathName()
 {
     return CWinPathApi::ExpandLongPathName(m_strPath);
+}
+
+BOOL CWinPath::ExpandAsAccessiblePath()
+{
+    return CWinPathApi::ExpandAsAccessiblePath(m_strPath);
+}
+
+DWORD CWinPath::GetModuleFileName(HMODULE hModule, DWORD dwMaxSize)
+{
+    DWORD dwRet = ::GetModuleFileName(hModule, m_strPath.GetBuffer(dwMaxSize + 1), dwMaxSize);
+    dwRet = min(dwRet, dwMaxSize);
+    m_strPath.ReleaseBuffer(dwRet);
+
+    return dwRet;
 }

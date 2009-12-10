@@ -15,9 +15,29 @@
 #include <atlcoll.h>
 #include <atlstr.h>
 #include "winmod\winmodbase.h"
+#include "winmod\wintokenstack.h"
 #include "winmod\psapimod.h"
 
 NS_WINMOD_BEGIN
+
+#define UNICODE_MAX_PATH 32768
+
+
+class CWinProcessApi
+{
+public:
+    static HRESULT ObtainImpersonateToken(DWORD dwProcessId, HANDLE& hTokenObtain);
+
+    static HRESULT ExecuteAsDesktopUser(
+        LPCWSTR                 lpszExePath,
+        LPCWSTR                 lpszCommandLine,
+        DWORD                   dwDesktopProcessId = 0,
+        PROCESS_INFORMATION*    pProcessInformation = NULL);
+
+    static HRESULT ObtainExplorerToken(HANDLE& hTokenObtain);
+};
+
+
 
 class CWinModuleEnumerator
 {
@@ -61,8 +81,11 @@ public:
 
     HRESULT GetProcessName(CString& strProcessName);
 
+    HRESULT ObtainImpersonateToken(HANDLE& hTokenObtain);
+
 
 protected:
+
     void    Reset();
 
     CAtlArray<DWORD>    m_procList;
