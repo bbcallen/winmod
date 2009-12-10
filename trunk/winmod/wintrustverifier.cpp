@@ -22,12 +22,11 @@ using namespace WinMod;
 DWORD CWinTrustVerifier::VerifyFile(LPCWSTR pwszFileFullPath)
 {
     assert(pwszFileFullPath);
-
     CAtlFile hFile;
     HRESULT  hr = hFile.Create(
         pwszFileFullPath,
         GENERIC_READ,
-        FILE_SHARE_READ | FILE_SHARE_WRITE,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
         OPEN_EXISTING);
     if (FAILED(hr))
         return hr;
@@ -40,44 +39,9 @@ DWORD CWinTrustVerifier::VerifyFile(LPCWSTR pwszFileFullPath, HANDLE hFile)
     assert(hFile && hFile != INVALID_HANDLE_VALUE);
     DWORD dwRet = 0;
 
-    dwRet = VerifyWinTrustFile(pwszFileFullPath, hFile);
-    if (ERROR_SUCCESS == dwRet)
-        return ERROR_SUCCESS;
-
-    //dwRet = VerifyDriverFile(pwszFileFullPath, hFile);
-    //if (ERROR_SUCCESS == dwRet)
-    //    return ERROR_SUCCESS;
-
-    dwRet = VerifyCatalogSignature(pwszFileFullPath, hFile);
-    if (ERROR_SUCCESS == dwRet)
-        return ERROR_SUCCESS;
-
-    return dwRet;
-}
-
-DWORD CWinTrustVerifier::VerifyFileFast(LPCWSTR pwszFileFullPath)
-{
-    assert(pwszFileFullPath);
-    CAtlFile hFile;
-    HRESULT  hr = hFile.Create(
-        pwszFileFullPath,
-        GENERIC_READ,
-        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-        OPEN_EXISTING);
-    if (FAILED(hr))
-        return hr;
-
-    return VerifyFileFast(pwszFileFullPath, hFile);
-}
-
-DWORD CWinTrustVerifier::VerifyFileFast(LPCWSTR pwszFileFullPath, HANDLE hFile)
-{
-    assert(hFile && hFile != INVALID_HANDLE_VALUE);
-    DWORD dwRet = 0;
-
     if (HasEmbeddedSignature(hFile))
     {
-        dwRet = VerifyWinTrustFile(pwszFileFullPath, hFile);
+        dwRet = VerifyEmbeddedWinTrustFile(pwszFileFullPath, hFile);
         if (ERROR_SUCCESS == dwRet)
             return ERROR_SUCCESS;
 
@@ -95,9 +59,8 @@ DWORD CWinTrustVerifier::VerifyFileFast(LPCWSTR pwszFileFullPath, HANDLE hFile)
     return dwRet;
 }
 
-DWORD CWinTrustVerifier::VerifyWinTrustFile(LPCWSTR pwszFileFullPath, HANDLE hFile)
+DWORD CWinTrustVerifier::VerifyEmbeddedWinTrustFile(LPCWSTR pwszFileFullPath, HANDLE hFile)
 {
-    assert(hFile && hFile != INVALID_HANDLE_VALUE);
     GUID WinTrustVerifyGuid = WINTRUST_ACTION_GENERIC_VERIFY_V2;
     return VerifyEmbeddedSignature(pwszFileFullPath, hFile, WinTrustVerifyGuid);
 }
@@ -107,7 +70,6 @@ DWORD CWinTrustVerifier::VerifyWinTrustFile(LPCWSTR pwszFileFullPath, HANDLE hFi
 DWORD CWinTrustVerifier::VerifyEmbeddedSignature(LPCWSTR pwszFileFullPath, HANDLE hFile, GUID& policyGUID)
 {
     assert(pwszFileFullPath);
-    assert(hFile && hFile != INVALID_HANDLE_VALUE);
 
     // Load wintrust.dll
     HRESULT hRet = TryLoadDll();

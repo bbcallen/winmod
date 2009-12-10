@@ -12,6 +12,18 @@
 
 NS_WINMOD_BEGIN
 
+#define WINMOD_UNKNOWN_OS   0x00000000
+#define WINMOD_XP_SP0       0x05010000
+#define WINMOD_XP_SP1       0x05010100
+#define WINMOD_XP_SP2       0x05010200
+#define WINMOD_XP_SP3       0x05010300
+#define WINMOD_2K3_SP0      0x05020000
+#define WINMOD_2K3_SP1      0x05020100
+#define WINMOD_2K3_SP2      0x05020200
+#define WINMOD_VISTA_SP0    0x06000000
+#define WINMOD_VISTA_SP1    0x06000100
+#define WINMOD_VISTA_SP2    0x06000200
+
 class CWinOSVer
 {
 public:
@@ -25,7 +37,34 @@ public:
         em_OS_MinorVer_WinXP    = 1,
     };
 
+    static DWORD GetOSAndSP()
+    {
+        OSVERSIONINFOEX osver;
+        memset(&osver, 0, sizeof(OSVERSIONINFOEX));
+        osver.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
+        BOOL br = GetVersionEx((OSVERSIONINFO*) &osver);
+        if (!br)
+            return 0;
 
+        
+        DWORD dwOSAndSP = 0;
+        dwOSAndSP |= (LOBYTE(osver.dwMajorVersion)      << 24);
+        dwOSAndSP |= (LOBYTE(osver.dwMinorVersion)      << 16);
+        dwOSAndSP |= (LOBYTE(osver.wServicePackMajor)   << 8);
+        return dwOSAndSP;
+    }
+
+    static BOOL IsX86()
+    {
+        SYSTEM_INFO sysInfo;
+        memset(&sysInfo, 0, sizeof(sysInfo));
+        GetSystemInfo(&sysInfo);
+
+        if (PROCESSOR_ARCHITECTURE_INTEL == sysInfo.wProcessorArchitecture)
+            return TRUE;
+
+        return FALSE;
+    }
 
     static BOOL IsVista()
     {

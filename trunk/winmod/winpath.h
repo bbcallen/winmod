@@ -70,7 +70,7 @@ public:
     static LPCWSTR  FindExtension(LPCWSTR pszPath);
 
     /// create short cut
-    static HRESULT  CreateLnkFile(LPCWSTR pszPath, LPCWSTR pszDesc, LPCWSTR pszLnkFilePath);
+    static HRESULT  CreateLnkFile(LPCWSTR pszPath, LPCWSTR pszArguments, LPCWSTR pszDesc, LPCWSTR pszLnkFilePath);
     /// resolve short cut
     static HRESULT  ResolveLnkFile(LPCWSTR pszLnkFile, CString& strTargetPath, DWORD dwFlag = SLR_NOUPDATE | SLR_NOTRACK | SLR_NOSEARCH | SLR_NO_UI);
 
@@ -86,6 +86,8 @@ public:
     static BOOL     IsFileExisting(LPCWSTR pszPath);
 
     static BOOL     IsLnkFile(LPCWSTR pszPath);
+
+    static BOOL     IsDeviceAccessible(WCHAR cRoot);
 };
 
 
@@ -159,6 +161,9 @@ public:
     HRESULT     ExpandFullPathName();
     HRESULT     ExpandLongPathName();
     void        ExpandNormalizedPathName();
+    BOOL        ExpandAsAccessiblePath();
+
+    DWORD       GetModuleFileName(HMODULE hModule, DWORD dwMaxSize = MAX_PATH);
 
     CString m_strPath;
 };

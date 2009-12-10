@@ -42,7 +42,6 @@ BOOL CWinRegKeyFind::FindFirstSubKey(
         }
 
 
-        // 确保无法继续迭代
         m_dwEnumIndex = ULONG_MAX;
         return TRUE;
     }

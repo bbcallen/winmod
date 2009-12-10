@@ -16,4 +16,11 @@
 NS_WINMOD_BEGIN
 NS_WINMOD_END
 
+
+/// 构造winmod模块的http成功码
+#define MAKE_WINMOD_HTTP_SUCCESS(x)             HRESULT(0x60020000 | (0xFFFF & x))
+/// 构造winmod模块的http错误码
+#define MAKE_WINMOD_HTTP_ERROR(x)               HRESULT(0xA0020000 | (0xFFFF & x))
+
+
 #endif//WINMODBASE_H
