@@ -8,7 +8,7 @@
 #include "stdafx.h"
 #include "winfilefinddata.h"
 
-#include "winmod\winpath.h"
+#include "winpath.h"
 
 using namespace WinMod;
 

@@ -43,6 +43,9 @@ public:
     BOOL    SetPriority(int nPriority);
     int     GetPriority();
 
+
+    DWORD   GetExitCode(DWORD dwDefaultCode = 0);
+
 private:
 
     // for CRT thread API
@@ -153,6 +156,17 @@ inline int CWinThread::GetPriority()
 {
     assert(m_h);
     return ::GetThreadPriority(m_h);
+}
+
+
+inline DWORD CWinThread::GetExitCode(DWORD dwDefaultCode)
+{
+    assert(m_h);
+    DWORD dwExitCode;
+    if (::GetExitCodeThread(m_h, &dwExitCode))
+        return dwExitCode;
+
+    return dwDefaultCode;
 }
 
 

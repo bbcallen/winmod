@@ -13,30 +13,40 @@
 
 using namespace WinMod;
 
-HRESULT CWinTokenHelper::EnableDebugPrivilege()
+HRESULT CWinTokenHelper::EnablePrivilege(LPCWSTR lpszPrivilege)
 {
+    assert(lpszPrivilege);
+
+
     CAccessToken token;
     BOOL br = token.GetEffectiveToken(TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY);
     if (!br)
         return GetLastError() ? AtlHresultFromLastError() : E_FAIL;
 
-    br = token.EnablePrivilege(L"SeDebugPrivilege");
+
+    br = token.EnablePrivilege(lpszPrivilege);
     if (!br)
         return GetLastError() ? AtlHresultFromLastError() : E_FAIL;
+
 
     return S_OK;
 }
 
-HRESULT CWinTokenHelper::DisableDebugPrivilege()
+HRESULT CWinTokenHelper::DisablePrivilege(LPCWSTR lpszPrivilege)
 {
+    assert(lpszPrivilege);
+
+
     CAccessToken token;
     BOOL br = token.GetEffectiveToken(TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY);
     if (!br)
         return GetLastError() ? AtlHresultFromLastError() : E_FAIL;
 
-    br = token.DisablePrivilege(L"SeDebugPrivilege");
+
+    br = token.DisablePrivilege(lpszPrivilege);
     if (!br)
         return GetLastError() ? AtlHresultFromLastError() : E_FAIL;
+
 
     return S_OK;
 }
@@ -57,53 +67,61 @@ CWinTokenStack::CWinTokenStack()
 
 CWinTokenStack::~CWinTokenStack()
 {
-    PopAll();
+    PopAllToken();
 }
 
-HRESULT CWinTokenStack::Push()
+HRESULT CWinTokenStack::PushToken()
 {
     CAccessToken token;
-    BOOL br = token.GetEffectiveToken(TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY);
-    if (!br)
-    {
-        return GetLastError() ? AtlHresultFromLastError() : E_FAIL;
-    }
+    token.GetThreadToken(TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY);
+ 
+    
 
+    // no impersonate token, so impersonate self and push NULL;
+    if(!::ImpersonateSelf(SecurityImpersonation))
+        return GetLastError() ? AtlHresultFromLastError() : E_FAIL;
+
+
+
+    // push previous token
     m_tokenStack.AddTail(token.Detach());
     return S_OK;
 }
 
-HRESULT CWinTokenStack::Pop()
+HRESULT CWinTokenStack::PopToken()
 {
     assert(!m_tokenStack.IsEmpty());
     if (m_tokenStack.IsEmpty())
         return E_FAIL;
 
-    CAccessToken token;
-    token.Attach(m_tokenStack.RemoveTail());
-    
 
 
-    if (token.GetHandle())
-    {
-        bool br = token.Impersonate();
-        if (!br)
-            return GetLastError() ? AtlHresultFromLastError() : E_FAIL;
-    }
-    else
-    {
+    if (m_tokenStack.GetTail())
+    {   // revert to stack base token
+        CAccessToken token;
+        token.Attach(m_tokenStack.RemoveTail());
+
+        
         bool br = token.Revert();
         if (!br)
             return GetLastError() ? AtlHresultFromLastError() : E_FAIL;
     }
+    else
+    {   // revert to self
+        BOOL br = ::RevertToSelf();
+        if (!br)
+            return GetLastError() ? AtlHresultFromLastError() : E_FAIL;
+    }
+    
 
 
 
     return S_OK;
 }
 
-void CWinTokenStack::PopAll()
+HRESULT CWinTokenStack::PopAllToken()
 {
+    // release all tokens
     while (m_tokenStack.GetCount() > 1)
     {
         HANDLE hToken = m_tokenStack.RemoveTail();
@@ -111,6 +129,11 @@ void CWinTokenStack::PopAll()
             ::CloseHandle(hToken);
     }
 
+
+    // revert to stack base token
     if (!m_tokenStack.IsEmpty())
-        Pop();
+        return PopToken();
+
+
+    return S_FALSE;
 }

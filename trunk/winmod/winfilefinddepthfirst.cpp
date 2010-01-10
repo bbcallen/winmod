@@ -44,7 +44,11 @@ BOOL CWinFileFindDepthFirst::FindFirstFile(
     m_pathParent.ExpandFullPathName();
     m_pathParent.ExpandLongPathName();
     m_pathParent.AddUnicodePrefix();
+    m_pathParent.RemoveBackslash();
 
+
+    if (!pszFileSpec || !*pszFileSpec)
+        pszFileSpec = L"*";
 
 
     if (!m_pathParent.IsDirectory())
@@ -54,18 +58,8 @@ BOOL CWinFileFindDepthFirst::FindFirstFile(
     }
 
 
-    // use '*'
-    if (!pszFileSpec || !*pszFileSpec)
-        pszFileSpec = L"*";
-
-
-    // combine full path
-    CWinPath findPath;
-    findPath.Combine(m_pathParent.m_strPath, pszFileSpec);
-
-
     // begin search
-    m_hContext = CWinFileFindApi::FindFirstFileSkipDots(findPath, *this);
+    m_hContext = CWinFileFindApi::FindFirstFileSkipDots(m_pathParent.m_strPath + L"\\" + pszFileSpec, *this);
     if (INVALID_HANDLE_VALUE == m_hContext)
     {
         Close();
@@ -91,6 +85,27 @@ BOOL CWinFileFindDepthFirst::FindNextFile()
 
     bFound = this->FindNextSiblingFile();
     while (!bFound)
+    {
+        if (!PopNode())
+            return FALSE;
+
+        bFound = this->FindNextSiblingFile();
+    }
+
+    return bFound;
+}
+
+BOOL CWinFileFindDepthFirst::FindNextFileSkipCurrentTree()
+{
+    assert(INVALID_HANDLE_VALUE != m_hContext);
+    if (INVALID_HANDLE_VALUE == m_hContext)
+    {
+        ::SetLastError(ERROR_INVALID_HANDLE);
+        return FALSE;
+    }
+
+    BOOL bFound = this->FindNextSiblingFile();
+    if (!bFound)
     {
         if (!PopNode())
             return FALSE;
@@ -136,19 +151,15 @@ BOOL CWinFileFindDepthFirst::FindFirstChildFile(LPCWSTR pszFileSpec)
     m_hContext = INVALID_HANDLE_VALUE;
 
 
+    m_pathParent.RemoveBackslash();
 
-    // use '*'
+
     if (!pszFileSpec || !*pszFileSpec)
         pszFileSpec = L"*";
 
 
-    // combine full path
-    CWinPath findPath;
-    findPath.Combine(m_pathParent.m_strPath, pszFileSpec);
 
-
-
-    m_hContext = CWinFileFindApi::FindFirstFileSkipDots(findPath, *this);
+    m_hContext = CWinFileFindApi::FindFirstFileSkipDots(m_pathParent.m_strPath + L"\\" + pszFileSpec, *this);
     if (INVALID_HANDLE_VALUE == m_hContext)
     {
         CloseTop();

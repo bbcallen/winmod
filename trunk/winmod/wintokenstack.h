@@ -16,9 +16,9 @@ NS_WINMOD_BEGIN
 class CWinTokenHelper
 {
 public:
-    HRESULT EnableDebugPrivilege();
+    HRESULT EnablePrivilege(LPCWSTR lpszPrivilege);
 
-    HRESULT DisableDebugPrivilege();
+    HRESULT DisablePrivilege(LPCWSTR lpszPrivilege);
 };
 
 
@@ -30,11 +30,11 @@ public:
 
     ~CWinTokenStack();
 
-    HRESULT Push();
+    HRESULT PushToken();
 
-    HRESULT Pop();
+    HRESULT PopToken();
 
-    void    PopAll();
+    HRESULT PopAllToken();
 
 protected:
     CAtlList<HANDLE>   m_tokenStack;

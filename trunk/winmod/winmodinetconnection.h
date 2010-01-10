@@ -8,7 +8,7 @@
 #ifndef WINMODINETCONNECTION_H
 #define WINMODINETCONNECTION_H
 
-#include "winmod\winmodinethandle.h"
+#include "winmodinethandle.h"
 
 NS_WINMOD_BEGIN
 
@@ -16,15 +16,7 @@ class CInetConnection: public CInetHandle
 {
 public:
     CInetConnection();
-
-    CInetConnection(CInetConnection& h);
-
-    explicit CInetConnection(HANDLE h);
-
     virtual ~CInetConnection();
-
-    CInetConnection& operator=(CInetConnection& h);
-
 
     HRESULT SetConnectTimeOut(DWORD  dwMilliSeconds);
     HRESULT GetConnectTimeOut(DWORD& dwMilliSeconds);
@@ -84,36 +76,25 @@ public:
     // INTERNET_OPTION_USERNAME 
     // INTERNET_OPTION_VERSION 
     // INTERNET_OPTION_WRITE_BUFFER_SIZE 
+
+private:
+    // denied
+    CInetConnection(CInetConnection& h);
+    explicit CInetConnection(HANDLE h);
+    CInetConnection& operator=(CInetConnection& h);
+
 };
 
 
 
 
-inline CInetConnection::CInetConnection():
-    CInetHandle()
-{
-}
-
-inline CInetConnection::CInetConnection(CInetConnection& h):
-    CInetHandle(h)
-{
-}
-
-inline CInetConnection::CInetConnection(HANDLE h):
-    CInetHandle(h)
+inline CInetConnection::CInetConnection()
 {
 }
 
 inline CInetConnection::~CInetConnection()
 {
 }
-
-inline CInetConnection& CInetConnection::operator=(CInetConnection& h)
-{
-    *(CInetHandle*)this = (CInetHandle&)h;
-}
-
-
 
 inline HRESULT CInetConnection::SetConnectTimeOut(DWORD  dwMilliSeconds)
 {

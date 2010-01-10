@@ -9,8 +9,8 @@
 #define WINMODINETSESSION_H
 
 #include <atlstr.h>
-#include "winmod\winmodinethandle.h"
-#include "winmod\winmodinethttpconnection.h"
+#include "winmodinethandle.h"
+#include "winmodinethttpconnection.h"
 
 NS_WINMOD_BEGIN
 
@@ -18,18 +18,11 @@ class CInetSession: public CInetHandle
 {
 public:
     CInetSession();
-
     virtual ~CInetSession();
 
-    HRESULT Open(
-        LPCTSTR lpszAgent       = NULL,
-        DWORD   dwAccessType    = INTERNET_OPEN_TYPE_PRECONFIG, 
-        LPCTSTR lpszProxy       = NULL, 
-        LPCTSTR lpszProxyBypass = NULL, 
-        DWORD   dwFlags         = 0);
+    virtual void Close() {Interrupt(); CInetHandle::Close();}
 
-    // 确保以线程安全的方式重新打开wininet会话
-    HRESULT Reopen(
+    HRESULT Open(
         LPCTSTR lpszAgent       = NULL,
         DWORD   dwAccessType    = INTERNET_OPEN_TYPE_PRECONFIG, 
         LPCTSTR lpszProxy       = NULL, 
@@ -69,13 +62,21 @@ public:
     HRESULT SetConnectTimeOut(DWORD  dwMilliSeconds);
     HRESULT GetConnectTimeOut(DWORD& dwMilliSeconds);
 
+    void    Interrupt();
 
-public:
-    typedef CComAutoCriticalSection                     CObjLock;
-    typedef CComCritSecLock<CComAutoCriticalSection>    CObjGuard;
+private:
+    // denied
+    CInetSession(CInetSession& h);
+    explicit CInetSession(HANDLE h);
+    CInetSession& operator=(CInetSession& h);
 
-    CObjLock m_objLock;
+
+private:
+
+    // used by HttpRequest and HttpDownload
+    CInetHttpConnection m_hHttpConnection;
 };
+
 
 
 
@@ -100,28 +101,6 @@ inline HRESULT CInetSession::Open(
         return GetLastError() ? AtlHresultFromLastError() : E_FAIL;
 
     Attach(hSession);
-    return S_OK;
-}
-
-inline HRESULT CInetSession::Reopen(
-    LPCTSTR lpszAgent,
-    DWORD   dwAccessType, 
-    LPCTSTR lpszProxy, 
-    LPCTSTR lpszProxyBypass, 
-    DWORD   dwFlags)
-{
-    CObjGuard objGuard(m_objLock);
-
-    HINTERNET hNewSession = ::InternetOpen(lpszAgent, dwAccessType, lpszProxy, lpszProxyBypass, dwFlags);
-    if (!hNewSession)
-        return GetLastError() ? AtlHresultFromLastError() : E_FAIL;
-
-    HINTERNET hOldSession = m_h;
-    m_h = hNewSession;
-
-    if (hOldSession)
-        ::InternetCloseHandle(hOldSession);
-
     return S_OK;
 }
 
@@ -165,13 +144,14 @@ inline HRESULT CInetSession::HttpRequest(
     if (!lpszServerName || !lpObject)
         return E_POINTER;
 
-    CInetHttpConnection hConn;
-    hConn.Attach(HttpConnect(lpszServerName, nServerPort));
-    if (!hConn)
+
+    m_hHttpConnection.Close();
+    m_hHttpConnection.Attach(HttpConnect(lpszServerName, nServerPort));
+    if (!m_hHttpConnection)
         return GetLastError() ? AtlHresultFromLastError() : E_FAIL;
 
 
-    return hConn.HttpRequest(
+    return m_hHttpConnection.HttpRequest(
         lpObject,
         dwTimeout,
         lpszContentType,
@@ -197,13 +177,13 @@ inline HRESULT CInetSession::HttpDownload(
     if (!lpszServerName || !lpObject)
         return E_POINTER;
 
-    CInetHttpConnection hConn;
-    hConn.Attach(HttpConnect(lpszServerName, nServerPort));
-    if (!hConn)
+
+    m_hHttpConnection.Attach(HttpConnect(lpszServerName, nServerPort));
+    if (!m_hHttpConnection)
         return GetLastError() ? AtlHresultFromLastError() : E_FAIL;
 
 
-    return hConn.HttpDownload(
+    return m_hHttpConnection.HttpDownload(
         piDownloadFile,
         piCallback,
         lpObject,
@@ -221,6 +201,14 @@ inline HRESULT CInetSession::GetConnectTimeOut(DWORD& dwMilliSeconds)
 {
     return DoGetOptionDWORD(INTERNET_OPTION_CONNECT_TIMEOUT, dwMilliSeconds);
 }
+
+
+inline void CInetSession::Interrupt()
+{
+    m_hHttpConnection.Close();
+}
+
+
 
 NS_WINMOD_END
 

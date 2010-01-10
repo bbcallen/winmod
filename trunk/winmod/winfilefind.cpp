@@ -58,7 +58,7 @@ void CWinFileFind::Close()
 {
     ResetFindData();
 
-    if (INVALID_HANDLE_VALUE == m_hContext)
+    if (INVALID_HANDLE_VALUE != m_hContext)
     {
         CWinFileFindApi::FindClose(m_hContext);
         m_hContext = INVALID_HANDLE_VALUE;

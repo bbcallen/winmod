@@ -10,9 +10,9 @@
 
 #include <atlstr.h>
 #include <atlcoll.h>
-#include "winmod\winmodbase.h"
-#include "winmod\winpath.h"
-#include "winmod\winfilefinddata.h"
+#include "winmodbase.h"
+#include "winpath.h"
+#include "winfilefinddata.h"
 
 NS_WINMOD_BEGIN
 
@@ -31,8 +31,13 @@ public:
 
     BOOL    FindNextFile();
 
+    // find next and skip the directory tree whose root is current file
+    BOOL    FindNextFileSkipCurrentTree();
+
+    // find next file at same level
     BOOL    FindNextSiblingFile();
 
+    // find next file below current level
     BOOL    FindFirstChildFile(LPCWSTR pszFileSpec = NULL);
 
     void    SkipCurrentDirectory();

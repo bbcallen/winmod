@@ -9,7 +9,7 @@
 #define WINFILEFINDDATA_H
 
 #include <atlstr.h>
-#include "winmod\winmodbase.h"
+#include "winmodbase.h"
 
 NS_WINMOD_BEGIN
 

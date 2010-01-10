@@ -10,7 +10,7 @@
 
 #include <shobjidl.h>
 #include <atlstr.h>
-#include "winmod\winmodbase.h"
+#include "winmodbase.h"
 
 NS_WINMOD_BEGIN
 
@@ -160,6 +160,7 @@ public:
 
     HRESULT     ExpandFullPathName();
     HRESULT     ExpandLongPathName();
+    void        ExpandEnvironmentStrings();
     void        ExpandNormalizedPathName();
     BOOL        ExpandAsAccessiblePath();
 

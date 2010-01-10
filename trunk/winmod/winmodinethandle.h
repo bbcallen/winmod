@@ -10,7 +10,7 @@
 
 #include <assert.h>
 #include <wininet.h>
-#include "winmod\winmodbase.h"
+#include "winmodbase.h"
 
 NS_WINMOD_BEGIN
 
@@ -18,43 +18,30 @@ class CInetHandle
 {
 public:
     CInetHandle();
-
-    CInetHandle(CInetHandle& h);
-
-    explicit CInetHandle(HANDLE h);
-
     virtual ~CInetHandle();
-
-    CInetHandle& operator=(CInetHandle& h);
-
 
 
     operator        HINTERNET() const;
-    void            Attach(HINTERNET h);
+    void            Attach(HINTERNET h, BOOL bOwn = TRUE);
     HINTERNET       Detach();
-    void            Close();
+    virtual void    Close() {if (m_bOwn && m_h != NULL) {::InternetCloseHandle(m_h); m_h = NULL;}}
 
     HRESULT         DoSetOptionDWORD(DWORD dwOption, DWORD  dwValue);
     HRESULT         DoGetOptionDWORD(DWORD dwOption, DWORD& dwValue);
 
+private:
+    // denied
+    CInetHandle(CInetHandle& h);
+    CInetHandle(HINTERNET h);
+    CInetHandle& operator=(CInetHandle& h);
+
 public:
-    HINTERNET m_h;
+    BOOL        m_bOwn;
+    HINTERNET   m_h;
 };
 
 
-inline CInetHandle::CInetHandle():
-    m_h(NULL)
-{
-}
-
-inline CInetHandle::CInetHandle(CInetHandle& h):
-    m_h(NULL)
-{
-    Attach(h.Detach());
-}
-
-inline CInetHandle::CInetHandle(HANDLE h):
-    m_h(h)
+inline CInetHandle::CInetHandle(): m_bOwn(TRUE), m_h(NULL)
 {
 }
 
@@ -66,29 +53,16 @@ inline CInetHandle::~CInetHandle()
     }
 }
 
-inline CInetHandle& CInetHandle::operator=(CInetHandle& h)
-{
-    if (this != &h)
-    {
-        if(m_h != NULL)
-        {
-            Close();
-        }
-        Attach(h.Detach());
-    }
-
-    return(*this);
-}
-
 inline CInetHandle::operator HANDLE() const
 {
     return(m_h);
 }
 
-inline void CInetHandle::Attach(HANDLE h)
+inline void CInetHandle::Attach(HANDLE h, BOOL bOwn)
 {
     assert(m_h == NULL);
-    m_h = h;  // Take ownership
+    m_h     = h;    // Copy
+    m_bOwn  = bOwn; // Take ownership ?
 }
 
 inline HANDLE CInetHandle::Detach()
@@ -99,15 +73,6 @@ inline HANDLE CInetHandle::Detach()
     m_h = NULL;
 
     return(h);
-}
-
-inline void CInetHandle::Close()
-{
-    if(m_h != NULL)
-    {
-        ::InternetCloseHandle(m_h);
-        m_h = NULL;
-    }
 }
 
 inline HRESULT CInetHandle::DoSetOptionDWORD(DWORD dwOption, DWORD  dwValue)

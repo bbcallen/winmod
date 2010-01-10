@@ -8,7 +8,7 @@
 #ifndef WINMODINETFILE_H
 #define WINMODINETFILE_H
 
-#include "winmod\winmodinethandle.h"
+#include "winmodinethandle.h"
 
 NS_WINMOD_BEGIN
 
@@ -16,48 +16,30 @@ class CInetFile: public CInetHandle
 {
 public:
     CInetFile();
-
-    CInetFile(CInetFile& h);
-
-    explicit CInetFile(HANDLE h);
-
     virtual ~CInetFile();
-
-    CInetFile& operator=(CInetFile& h);
-
 
     HRESULT Read(LPVOID pBuffer, DWORD nBufSize, DWORD& nBytesRead);
 
     HRESULT Write(LPCVOID pBuffer, DWORD nBufSize, DWORD& nBytesWritten);
 
     HRESULT Seek(LONGLONG nOffset, DWORD dwFrom = FILE_CURRENT);
+
+private:
+    // denied
+    CInetFile(CInetFile& h);
+    CInetFile(HINTERNET h);
+    CInetFile& operator=(CInetFile& h);
 };
 
 
 
 
-inline CInetFile::CInetFile():
-    CInetHandle()
-{
-}
-
-inline CInetFile::CInetFile(CInetFile& h):
-    CInetHandle(h)
-{
-}
-
-inline CInetFile::CInetFile(HANDLE h):
-    CInetHandle(h)
+inline CInetFile::CInetFile()
 {
 }
 
 inline CInetFile::~CInetFile()
 {
-}
-
-inline CInetFile& CInetFile::operator=(CInetFile& h)
-{
-    *(CInetHandle*)this = (CInetHandle&)h;
 }
 
 

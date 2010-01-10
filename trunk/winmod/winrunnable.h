@@ -10,7 +10,7 @@
 
 #include <atlsync.h>
 #include <atlbase.h>
-#include "winmod\winthread.h"
+#include "winthread.h"
 
 NS_WINMOD_BEGIN
 
@@ -21,21 +21,14 @@ class AWinRunnable: public IWinRunnable
 {
 public:
     AWinRunnable();
-    virtual ~AWinRunnable();
-
+    virtual ~AWinRunnable() {}
 
     void    CloseThread();
     HRESULT StartRunning();
 
-
-    void    NotifyStopRunning();
-    DWORD   WaitUntilNotifiedStop(DWORD dwMilliseconds = INFINITE);
-    BOOL    IsNotifiedStopRunning();
-    void    ForceStopRunning(DWORD dwMilliseconds);
-
-
     DWORD   WaitExit(DWORD dwMilliseconds);
     BOOL    IsExit();
+    DWORD   GetExitCode(DWORD dwDefaultCode = 0);
 
 protected:
 
@@ -60,7 +53,6 @@ inline void AWinRunnable::CloseThread()
     m_hThread.Close();
 }
 
-
 inline HRESULT AWinRunnable::StartRunning()
 {
     if (m_hThread && !m_hThread.IsExit())
@@ -75,32 +67,6 @@ inline HRESULT AWinRunnable::StartRunning()
     return m_hThread.Create(this);
 }
 
-
-inline void AWinRunnable::NotifyStopRunning()
-{
-    if (m_hNotifyStop)
-        m_hNotifyStop.Set();
-};
-
-
-inline DWORD AWinRunnable::WaitUntilNotifiedStop(DWORD dwMilliseconds)
-{
-    return ::WaitForSingleObject(m_hNotifyStop, dwMilliseconds);
-};
-
-
-inline BOOL AWinRunnable::IsNotifiedStopRunning()
-{
-    return WAIT_TIMEOUT != WaitUntilNotifiedStop(0);
-}
-
-
-inline void AWinRunnable::ForceStopRunning(DWORD dwMilliseconds)
-{
-    NotifyStopRunning();
-    m_hThread.WaitExit(dwMilliseconds);
-}
-
 inline DWORD AWinRunnable::WaitExit(DWORD dwMilliseconds)
 {
     return m_hThread.WaitExit(dwMilliseconds);
@@ -109,6 +75,11 @@ inline DWORD AWinRunnable::WaitExit(DWORD dwMilliseconds)
 inline BOOL AWinRunnable::IsExit()
 {
     return m_hThread.IsExit();
+}
+
+inline DWORD AWinRunnable::GetExitCode(DWORD dwDefaultCode)
+{
+    return m_hThread.GetExitCode(dwDefaultCode);
 }
 
 

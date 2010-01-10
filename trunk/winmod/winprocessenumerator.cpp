@@ -234,8 +234,8 @@ HRESULT CWinProcessEnumerator::EnumAllProcesses()
 
     // obtain DebugPrevilege
     CWinTokenStack localPrivilege;
-    localPrivilege.Push();
-    localPrivilege.EnableDebugPrivilege();
+    localPrivilege.PushToken();
+    localPrivilege.EnablePrivilege(SE_DEBUG_NAME);
 
     DWORD dwReturnCount     = 200;
     DWORD dwExpectedCount   = 0;
@@ -300,8 +300,8 @@ HRESULT CWinProcessEnumerator::GetProcessPath(CString& strProcessPath)
 {
     // obtain DebugPrevilege
     CWinTokenStack localPrivilege;
-    localPrivilege.Push();
-    localPrivilege.EnableDebugPrivilege();
+    localPrivilege.PushToken();
+    localPrivilege.EnablePrivilege(SE_DEBUG_NAME);
 
     CHandle hProcess;
     hProcess.Attach(::OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, GetProcessID()));
@@ -325,8 +325,8 @@ HRESULT CWinProcessEnumerator::GetProcessImageName(CString& strProcessImageName)
 {
     // obtain DebugPrevilege
     CWinTokenStack localPrivilege;
-    localPrivilege.Push();
-    localPrivilege.EnableDebugPrivilege();
+    localPrivilege.PushToken();
+    localPrivilege.EnablePrivilege(SE_DEBUG_NAME);
 
 
     CHandle hProcess;
@@ -357,8 +357,8 @@ HRESULT CWinProcessEnumerator::GetProcessName(CString& strProcessName)
 {
     // obtain DebugPrevilege
     CWinTokenStack localPrivilege;
-    localPrivilege.Push();
-    localPrivilege.EnableDebugPrivilege();
+    localPrivilege.PushToken();
+    localPrivilege.EnablePrivilege(SE_DEBUG_NAME);
 
     CWinPath strPath;
 
@@ -411,8 +411,8 @@ HRESULT CWinModuleEnumerator::EnumAllModules(DWORD dwModuleID)
 
     // ¡Ÿ ±ªÒ»°DebugPrevilege
     CWinTokenStack localPrivilege;
-    localPrivilege.Push();
-    localPrivilege.EnableDebugPrivilege();
+    localPrivilege.PushToken();
+    localPrivilege.EnablePrivilege(SE_DEBUG_NAME);
 
     m_hProc.Attach(OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, dwModuleID));
     if (!m_hProc)
@@ -558,8 +558,8 @@ HRESULT CWinProcessToolHelpEnumerator::EnumAllProcesses()
 {
     // obtain DebugPrevilege
     CWinTokenStack localPrivilege;
-    localPrivilege.Push();
-    localPrivilege.EnableDebugPrivilege();
+    localPrivilege.PushToken();
+    localPrivilege.EnablePrivilege(SE_DEBUG_NAME);
 
     m_hProcessSnap.Attach(::CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0));
     if (INVALID_HANDLE_VALUE == m_hProcessSnap)

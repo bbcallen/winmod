@@ -8,7 +8,7 @@
 #ifndef WINMODINETHTTPFILE_H
 #define WINMODINETHTTPFILE_H
 
-#include "winmod\winmodinetfile.h"
+#include "winmodinetfile.h"
 
 NS_WINMOD_BEGIN
 
@@ -16,14 +16,8 @@ class CInetHttpFile: public CInetFile
 {
 public:
     CInetHttpFile();
-
-    CInetHttpFile(CInetHttpFile& h);
-
-    explicit CInetHttpFile(HANDLE h);
-
     virtual ~CInetHttpFile();
 
-    CInetHttpFile& operator=(CInetHttpFile& h);
 
     HRESULT AddRequestHeaders(
         LPCWSTR pstrHeaders,
@@ -49,32 +43,24 @@ public:
     HRESULT QueryInfoStatusCode(DWORD& dwStatusCode) const;
 
     HRESULT QueryInfoContentLength(DWORD& dwContentLength) const;
+
+
+private:
+    // denied
+    CInetHttpFile(CInetHttpFile& h);
+    explicit CInetHttpFile(HANDLE h);
+    CInetHttpFile& operator=(CInetHttpFile& h);
 };
 
 
 
-inline CInetHttpFile::CInetHttpFile():
-    CInetFile()
+inline CInetHttpFile::CInetHttpFile()
 {
 }
 
-inline CInetHttpFile::CInetHttpFile(CInetHttpFile& h):
-    CInetFile(h)
-{
-}
-
-inline CInetHttpFile::CInetHttpFile(HANDLE h):
-    CInetFile(h)
-{
-}
 
 inline CInetHttpFile::~CInetHttpFile()
 {
-}
-
-inline CInetHttpFile& CInetHttpFile::operator=(CInetHttpFile& h)
-{
-    *(CInetFile*)this = (CInetFile&)h;
 }
 
 inline HRESULT CInetHttpFile::AddRequestHeaders(
