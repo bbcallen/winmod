@@ -9,8 +9,8 @@
 #define WINMODINETHTTPCONNECTION_H
 
 #include <atlstr.h>
-#include "winmod\winmodinetconnection.h"
-#include "winmod\winmodinethttpfile.h"
+#include "winmodinetconnection.h"
+#include "winmodinethttpfile.h"
 
 NS_WINMOD_BEGIN
 
@@ -50,14 +50,9 @@ class CInetHttpConnection: public CInetConnection
 {
 public:
     CInetHttpConnection();
-
-    CInetHttpConnection(CInetHttpConnection& h);
-
-    explicit CInetHttpConnection(HANDLE h);
-
     virtual ~CInetHttpConnection();
 
-    CInetHttpConnection& operator=(CInetHttpConnection& h);
+    virtual void Close() {Interrupt(); CInetConnection::Close();}
 
     // pstrVerb could be one of:
     // "POST"
@@ -96,33 +91,30 @@ public:
         /* [in ] */ DWORD                       dwTimeout,
         /* [out] */ DWORD*                      pdwStatusCode       = NULL,
         /* [in ] */ LPCTSTR                     lpszSpecHostName    = NULL);
+
+    void    Interrupt();
+
+private:
+    // denied
+    CInetHttpConnection(CInetHttpConnection& h);
+    explicit CInetHttpConnection(HANDLE h);
+    CInetHttpConnection& operator=(CInetHttpConnection& h);
+
+private:
+
+    // used by HttpRequest and HttpDownload
+    CInetHttpFile m_hHttpFile;
 };
 
 
 
 
-inline CInetHttpConnection::CInetHttpConnection():
-    CInetConnection()
-{
-}
-
-inline CInetHttpConnection::CInetHttpConnection(CInetHttpConnection& h):
-    CInetConnection(h)
-{
-}
-
-inline CInetHttpConnection::CInetHttpConnection(HANDLE h):
-    CInetConnection(h)
+inline CInetHttpConnection::CInetHttpConnection()
 {
 }
 
 inline CInetHttpConnection::~CInetHttpConnection()
 {
-}
-
-inline CInetHttpConnection& CInetHttpConnection::operator=(CInetHttpConnection& h)
-{
-    *(CInetConnection*)this = (CInetConnection&)h;
 }
 
 
@@ -151,6 +143,13 @@ inline HINTERNET CInetHttpConnection::OpenRequest(
 
     return hFile;
 }
+
+
+inline void CInetHttpConnection::Interrupt()
+{
+    m_hHttpFile.Close();
+}
+
 
 NS_WINMOD_END
 

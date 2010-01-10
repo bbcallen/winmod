@@ -134,7 +134,9 @@ BOOL CWinPathApi::ExpandPatternAtBeginning(LPWSTR lpszPath, DWORD cchBuf, LPCWST
     assert(lpszPath);
     assert(lpszPattern);
     assert(lpszExpandAs);
-    assert(cchBuf);
+    if (!cchBuf)
+        return FALSE;
+
 
     // find pattern
     size_t cchPatternLen = wcslen(lpszPattern);
@@ -215,6 +217,28 @@ BOOL CWinPathApi::ExpandEnvironmentStrings(CString& strPath)
     strLongPathName.ReleaseBuffer();
     strPath = strLongPathName;
     return br;
+}
+
+void CWinPath::ExpandEnvironmentStrings()
+{
+    CWinPathApi::ExpandEnvironmentStrings(m_strPath);
+}
+
+void CWinPath::ExpandNormalizedPathName()
+{
+    if (m_strPath.IsEmpty())
+        return;
+
+    this->ExpandEnvironmentStrings();
+    this->ExpandAsAccessiblePath();
+
+    if (-1 != m_strPath.Find(L'~', 0))
+    {   // 仅在必要的时候展开成长路径
+        CWinPathApi::ExpandLongPathName(m_strPath);
+    }
+
+    this->AddUnicodePrefix();
+    m_strPath.MakeLower();
 }
 
 BOOL CWinPathApi::ExpandAsAccessiblePath(LPWSTR lpszPath, DWORD cchBuf)
@@ -1383,7 +1407,6 @@ void CWinPath::AddUnicodePrefix()
     else
     {
         strResult = L"\\\\?\\";
-        ExpandFullPathName();
         ExpandLongPathName();
         strResult.Append(m_strPath);
     }

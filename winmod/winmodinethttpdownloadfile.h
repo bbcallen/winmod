@@ -9,7 +9,7 @@
 #define WINMODINETHTTPDOWNLOADFILE_H
 
 #include <atlfile.h>
-#include "winmod\winmodinetconnection.h"
+#include "winmodinetconnection.h"
 
 NS_WINMOD_BEGIN
 

@@ -10,8 +10,8 @@
 
 #include <atlstr.h>
 #include <atlcoll.h>
-#include "winmod\winmodbase.h"
-#include "winmod\winfilefinddata.h"
+#include "winmodbase.h"
+#include "winfilefinddata.h"
 
 NS_WINMOD_BEGIN
 

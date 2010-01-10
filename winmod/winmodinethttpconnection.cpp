@@ -8,6 +8,8 @@
 #include "stdafx.h"
 #include "winmodinethttpconnection.h"
 
+#include "winmodinet.h"
+
 using namespace WinMod;
 
 HRESULT CInetHttpConnection::HttpRequest(
@@ -30,9 +32,9 @@ HRESULT CInetHttpConnection::HttpRequest(
     SetReceiveTimeOut(dwTimeout);
 
 
-    CInetHttpFile hFile;
-    hFile.Attach(OpenRequest(L"POST", lpObject));
-    if (!hFile)
+    m_hHttpFile.Close();
+    m_hHttpFile.Attach(OpenRequest(L"POST", lpObject));
+    if (!m_hHttpFile)
         return GetLastError() ? AtlHresultFromLastError() : E_FAIL;
 
 
@@ -41,7 +43,7 @@ HRESULT CInetHttpConnection::HttpRequest(
     {
         CString strHost;
         strHost.Format(L"Host: %s", lpszSpecHostName);
-        hr = hFile.AddRequestHeaders(strHost,  strHost.GetLength(), HTTP_ADDREQ_FLAG_REPLACE);
+        hr = m_hHttpFile.AddRequestHeaders(strHost,  strHost.GetLength(), HTTP_ADDREQ_FLAG_REPLACE);
     }
 
 
@@ -50,20 +52,20 @@ HRESULT CInetHttpConnection::HttpRequest(
     CString strContentType = L"Content-Type: ";
     strContentType.Append(lpszContentType);
 
-    hr = hFile.AddRequestHeaders(strContentLength,  strContentLength.GetLength());
-    hr = hFile.AddRequestHeaders(strContentType,    strContentType.GetLength());
+    hr = m_hHttpFile.AddRequestHeaders(strContentLength,  strContentLength.GetLength());
+    hr = m_hHttpFile.AddRequestHeaders(strContentType,    strContentType.GetLength());
 
 
 
     INTERNET_BUFFERS inetBuf;
     ::ZeroMemory(&inetBuf, sizeof(inetBuf));
-    hr = hFile.SendRequest(NULL, 0, (LPVOID)(LPCSTR)strCommand, (DWORD)strCommand.GetLength());
+    hr = m_hHttpFile.SendRequest(NULL, 0, (LPVOID)(LPCSTR)strCommand, (DWORD)strCommand.GetLength());
     if (FAILED(hr))
         return hr;
 
 
     DWORD dwStatusCode = HTTP_STATUS_SERVER_ERROR;
-    hr = hFile.QueryInfoStatusCode(dwStatusCode);
+    hr = m_hHttpFile.QueryInfoStatusCode(dwStatusCode);
     if (FAILED(hr))
         return hr;
 
@@ -83,7 +85,7 @@ HRESULT CInetHttpConnection::HttpRequest(
 
 
     DWORD dwContentLength = 400;
-    hr = hFile.QueryInfoContentLength(dwContentLength);
+    hr = m_hHttpFile.QueryInfoContentLength(dwContentLength);
     if (FAILED(hr))
         return hr;
 
@@ -93,7 +95,7 @@ HRESULT CInetHttpConnection::HttpRequest(
 
 
     DWORD dwBytesRead = 0;
-    hr = hFile.Read(pstrResponse->GetBuffer(dwContentLength), dwContentLength, dwBytesRead);
+    hr = m_hHttpFile.Read(pstrResponse->GetBuffer(dwContentLength), dwContentLength, dwBytesRead);
     pstrResponse->ReleaseBuffer(dwBytesRead);
     if (FAILED(hr))
         return hr;
@@ -127,9 +129,9 @@ HRESULT CInetHttpConnection::HttpDownload(
     SetReceiveTimeOut(dwTimeout);
 
 
-    CInetHttpFile hHttpFile;
-    hHttpFile.Attach(OpenRequest(L"GET", lpObject));
-    if (!hHttpFile)
+    m_hHttpFile.Close();
+    m_hHttpFile.Attach(OpenRequest(L"GET", lpObject));
+    if (!m_hHttpFile)
         return GetLastError() ? AtlHresultFromLastError() : E_FAIL;
 
 
@@ -138,14 +140,14 @@ HRESULT CInetHttpConnection::HttpDownload(
     {
         CString strHost;
         strHost.Format(L"Host: %s", lpszSpecHostName);
-        hr = hHttpFile.AddRequestHeaders(strHost,  strHost.GetLength(), HTTP_ADDREQ_FLAG_REPLACE);
+        hr = m_hHttpFile.AddRequestHeaders(strHost,  strHost.GetLength(), HTTP_ADDREQ_FLAG_REPLACE);
     }
 
 
 
     INTERNET_BUFFERS inetBuf;
     ::ZeroMemory(&inetBuf, sizeof(inetBuf));
-    hr = hHttpFile.SendRequest();
+    hr = m_hHttpFile.SendRequest();
     if (FAILED(hr))
         return hr;
 
@@ -153,7 +155,7 @@ HRESULT CInetHttpConnection::HttpDownload(
 
     // 查询http状态码
     DWORD dwHttpStatusCode = 0;
-    hr = hHttpFile.QueryInfoStatusCode(dwHttpStatusCode);
+    hr = m_hHttpFile.QueryInfoStatusCode(dwHttpStatusCode);
     if (FAILED(hr))
         return hr;
 
@@ -169,7 +171,7 @@ HRESULT CInetHttpConnection::HttpDownload(
 
     // 查询内容长度
     DWORD dwContentLength = 0;
-    hr = hHttpFile.QueryInfoContentLength(dwContentLength);
+    hr = m_hHttpFile.QueryInfoContentLength(dwContentLength);
     if (FAILED(hr))
         return hr;
 
@@ -199,7 +201,7 @@ HRESULT CInetHttpConnection::HttpDownload(
         DWORD dwToRead = min(sizeof(byBuffer), dwBytesLeft); 
 
 
-        hr = hHttpFile.Read(byBuffer, dwToRead, dwBytesRead);
+        hr = m_hHttpFile.Read(byBuffer, dwToRead, dwBytesRead);
         if (FAILED(hr))
             return hr;
 

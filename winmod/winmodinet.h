@@ -15,8 +15,8 @@
 #pragma warning(push)
 #pragma warning(disable: 4239)  // Conversion from integral type to enum type is not strictly allowed. 
 
-#include "winmod\winmodinetsession.h"
-#include "winmod\winmodinethttpdownloadfile.h"
+#include "winmodinetsession.h"
+#include "winmodinethttpdownloadfile.h"
 
 #pragma warning(pop)
 
