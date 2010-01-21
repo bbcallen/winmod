@@ -13,6 +13,7 @@
 using namespace WinMod;
 
 CWinFileFind::CWinFileFind()
+    : m_hContext(INVALID_HANDLE_VALUE)
 {
 }
 

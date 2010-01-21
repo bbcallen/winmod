@@ -21,7 +21,7 @@ CWinFileFindData::~CWinFileFindData()
 {
 }
 
-WIN32_FIND_DATA* CWinFileFindData::GetFindDataBuffer()
+WIN32_FIND_DATAW* CWinFileFindData::GetFindDataBuffer()
 {
     return &m_findData;
 }

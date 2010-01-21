@@ -21,7 +21,7 @@ public:
 
 // Attributes
 public:
-    WIN32_FIND_DATA* GetFindDataBuffer();
+    WIN32_FIND_DATAW* GetFindDataBuffer();
 
 
     DWORD           GetFileAttributes() const;

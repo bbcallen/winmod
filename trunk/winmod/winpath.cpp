@@ -495,6 +495,51 @@ HRESULT CWinPathApi::ResolveLnkFile(LPCWSTR pszLnkFile, CString& strTargetPath, 
     return S_OK;
 }
 
+
+
+
+
+
+
+
+HRESULT CWinPathApi::SetFileAces(
+    LPCWSTR lpszFilePath,
+    CSid&   sid,
+    DWORD   dwAllowed,
+    DWORD   dwDenied,
+    BOOL    bRemoveOldAces)
+{
+    BOOL bRet = FALSE;
+    CDacl dacl;
+
+    bRet = ATL::AtlGetDacl(lpszFilePath, SE_FILE_OBJECT, &dacl);
+    if (!bRet)
+        return GetLastError() ? AtlHresultFromLastError() : E_FAIL;
+
+
+    if (bRemoveOldAces)
+        dacl.RemoveAllAces();
+
+
+    bRet = dacl.AddAllowedAce(Sids::World(), FILE_GENERIC_READ | FILE_GENERIC_WRITE);
+    bRet = dacl.AddDeniedAce(Sids::World(), FILE_EXECUTE);
+    if (!bRet)
+        return GetLastError() ? AtlHresultFromLastError() : E_FAIL;
+
+
+    bRet = ATL::AtlSetDacl(lpszFilePath, SE_FILE_OBJECT, dacl);
+    if (!bRet)
+        return GetLastError() ? AtlHresultFromLastError() : E_FAIL;
+
+    return S_OK;
+}
+
+
+
+
+
+
+
 BOOL CWinPathApi::IsDots(LPCWSTR pszPath)
 {
     if (!pszPath || !*pszPath)
