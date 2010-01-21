@@ -103,28 +103,26 @@ inline HMODULE CWinModule::Detach()
 
 inline HRESULT CWinModule::LoadLib(LPCWSTR lpDllPath)
 {
-    FreeLib();
-
     HMODULE hLib = ::LoadLibrary(lpDllPath);
     if (!hLib)
     {
         return GetLastError() ? AtlHresultFromLastError() : E_FAIL;
     }
 
+    FreeLib();
     m_hLib = hLib;
     return S_OK;
 }
 
 inline HRESULT CWinModule::LoadLibEx(LPCWSTR lpDllPath, DWORD dwFlag)
 {
-    FreeLib();
-
     HMODULE hLib = ::LoadLibraryEx(lpDllPath, NULL, dwFlag);
     if (!hLib)
     {
         return GetLastError() ? AtlHresultFromLastError() : E_FAIL;
     }
 
+    FreeLib();
     m_hLib = hLib;
     return S_OK;
 }

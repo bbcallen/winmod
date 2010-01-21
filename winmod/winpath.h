@@ -10,6 +10,7 @@
 
 #include <shobjidl.h>
 #include <atlstr.h>
+#include <atlsecurity.h>
 #include "winmodbase.h"
 
 NS_WINMOD_BEGIN
@@ -73,6 +74,16 @@ public:
     static HRESULT  CreateLnkFile(LPCWSTR pszPath, LPCWSTR pszArguments, LPCWSTR pszDesc, LPCWSTR pszLnkFilePath);
     /// resolve short cut
     static HRESULT  ResolveLnkFile(LPCWSTR pszLnkFile, CString& strTargetPath, DWORD dwFlag = SLR_NOUPDATE | SLR_NOTRACK | SLR_NOSEARCH | SLR_NO_UI);
+
+
+    static HRESULT  SetFileAces(
+        LPCWSTR lpszFilePath,
+        CSid&   sid,
+        DWORD   dwAllowedAccess,
+        DWORD   dwDeniedAccess,
+        BOOL    bRemoveOldAces = TRUE);
+
+
 
     /// path is "." or ".."
     static BOOL     IsDots(LPCWSTR pszPath);
