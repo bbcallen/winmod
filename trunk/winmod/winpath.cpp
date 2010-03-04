@@ -507,7 +507,8 @@ HRESULT CWinPathApi::SetFileAces(
     CSid&   sid,
     DWORD   dwAllowed,
     DWORD   dwDenied,
-    BOOL    bRemoveOldAces)
+    BOOL    bRemoveOldAces,
+    DWORD   AceFlags)
 {
     BOOL bRet = FALSE;
     CDacl dacl;
@@ -521,10 +522,20 @@ HRESULT CWinPathApi::SetFileAces(
         dacl.RemoveAllAces();
 
 
-    bRet = dacl.AddAllowedAce(Sids::World(), FILE_GENERIC_READ | FILE_GENERIC_WRITE);
-    bRet = dacl.AddDeniedAce(Sids::World(), FILE_EXECUTE);
-    if (!bRet)
-        return GetLastError() ? AtlHresultFromLastError() : E_FAIL;
+    if (dwAllowed)
+    {
+        bRet = dacl.AddAllowedAce(Sids::World(), dwAllowed, AceFlags);
+        if (!bRet)
+            return GetLastError() ? AtlHresultFromLastError() : E_FAIL;
+    }
+    
+
+    if (dwDenied)
+    {
+        bRet = dacl.AddDeniedAce(Sids::World(), dwDenied, AceFlags);
+        if (!bRet)
+            return GetLastError() ? AtlHresultFromLastError() : E_FAIL;
+    }
 
 
     bRet = ATL::AtlSetDacl(lpszFilePath, SE_FILE_OBJECT, dacl);
@@ -869,96 +880,96 @@ void CWinPath::BuildRoot(int iDrive)
         m_strPath.Append(L":\\");
     }
 }
-
-void CWinPath::Canonicalize()
-{
-    CString strResult;
-    LPCWSTR lpszSource = (LPCWSTR)m_strPath;
-
-    // copy prefix
-    LPCWSTR lpAfterPrefix = CWinPathApi::FindAfterAnyPrefix(m_strPath);
-    if (lpszSource != lpAfterPrefix)
-    {
-        strResult.Append(lpszSource, int(lpAfterPrefix - lpszSource));
-        lpszSource = lpAfterPrefix;
-    }
-
-
-    while (lpszSource[0])
-    {
-        LPCWSTR lpPathNodeEnd = StrChrW(lpszSource, L'\\');
-        if (!lpPathNodeEnd)
-        {
-            lpPathNodeEnd = (LPCWSTR)m_strPath + m_strPath.GetLength();
-        }
-
-        int cbPathNodeCount = int(lpPathNodeEnd - lpszSource);
-
-        if (1 == cbPathNodeCount && L'.' == lpszSource[0])    
-        {   // single dot
-            lpszSource = lpPathNodeEnd;
-
-            // skip backslash
-            if (L'\\' == lpszSource[0])
-                ++lpszSource;
-        }
-        else if (2 == cbPathNodeCount && L'.' == lpszSource[0] && L'.' == lpszSource[1])
-        {
-            if (!CWinPathApi::IsRoot(strResult))
-            {
-                int nPos = strResult.ReverseFind(L'\\');
-                if (-1 != nPos)
-                    strResult.Truncate(nPos + 1);
-            }
-
-            lpszSource = lpPathNodeEnd;
-
-            // skip backslash
-            if (L'\\' == lpszSource[0])
-                ++lpszSource;
-        }
-        else
-        {
-            strResult.Append(lpszSource, cbPathNodeCount);
-            lpszSource = lpPathNodeEnd;
-
-            if (L'\0' != lpszSource[0])
-            {
-                strResult.AppendChar(lpszSource[0]);
-                ++lpszSource;
-            }
-        }
-    }
-
-
-    
-    int nLen = strResult.GetLength();
-    if (strResult.IsEmpty())
-    {   // empty path
-        strResult = L'\\';
-    }
-    else if (L':' == strResult[nLen - 1])
-    {
-        LPCWSTR lpNewAfterPrefix = CWinPathApi::FindAfterAnyPrefix(strResult);
-        if (L'\0' != lpNewAfterPrefix[0] && 
-            L':'  == lpNewAfterPrefix[1] &&
-            L'\0' == lpNewAfterPrefix[2])
-        {   // prefix + L"X:"
-            strResult.AppendChar(L'\\');
-        }
-    }
-    else if (L'.' == strResult[nLen - 1])
-    {
-        while (nLen && L'.' == strResult[nLen - 1])
-        {
-            --nLen;
-        }
-
-        strResult.Truncate(nLen);
-    }
-
-    m_strPath = strResult;
-}
+//
+//void CWinPath::Canonicalize()
+//{
+//    CString strResult;
+//    LPCWSTR lpszSource = (LPCWSTR)m_strPath;
+//
+//    // copy prefix
+//    LPCWSTR lpAfterPrefix = CWinPathApi::FindAfterAnyPrefix(m_strPath);
+//    if (lpszSource != lpAfterPrefix)
+//    {
+//        strResult.Append(lpszSource, int(lpAfterPrefix - lpszSource));
+//        lpszSource = lpAfterPrefix;
+//    }
+//
+//
+//    while (lpszSource[0])
+//    {
+//        LPCWSTR lpPathNodeEnd = StrChrW(lpszSource, L'\\');
+//        if (!lpPathNodeEnd)
+//        {
+//            lpPathNodeEnd = (LPCWSTR)m_strPath + m_strPath.GetLength();
+//        }
+//
+//        int cbPathNodeCount = int(lpPathNodeEnd - lpszSource);
+//
+//        if (1 == cbPathNodeCount && L'.' == lpszSource[0])    
+//        {   // single dot
+//            lpszSource = lpPathNodeEnd;
+//
+//            // skip backslash
+//            if (L'\\' == lpszSource[0])
+//                ++lpszSource;
+//        }
+//        else if (2 == cbPathNodeCount && L'.' == lpszSource[0] && L'.' == lpszSource[1])
+//        {
+//            if (!CWinPathApi::IsRoot(strResult))
+//            {
+//                int nPos = strResult.ReverseFind(L'\\');
+//                if (-1 != nPos)
+//                    strResult.Truncate(nPos + 1);
+//            }
+//
+//            lpszSource = lpPathNodeEnd;
+//
+//            // skip backslash
+//            if (L'\\' == lpszSource[0])
+//                ++lpszSource;
+//        }
+//        else
+//        {
+//            strResult.Append(lpszSource, cbPathNodeCount);
+//            lpszSource = lpPathNodeEnd;
+//
+//            if (L'\0' != lpszSource[0])
+//            {
+//                strResult.AppendChar(lpszSource[0]);
+//                ++lpszSource;
+//            }
+//        }
+//    }
+//
+//
+//    
+//    int nLen = strResult.GetLength();
+//    if (strResult.IsEmpty())
+//    {   // empty path
+//        strResult = L'\\';
+//    }
+//    else if (L':' == strResult[nLen - 1])
+//    {
+//        LPCWSTR lpNewAfterPrefix = CWinPathApi::FindAfterAnyPrefix(strResult);
+//        if (L'\0' != lpNewAfterPrefix[0] && 
+//            L':'  == lpNewAfterPrefix[1] &&
+//            L'\0' == lpNewAfterPrefix[2])
+//        {   // prefix + L"X:"
+//            strResult.AppendChar(L'\\');
+//        }
+//    }
+//    else if (L'.' == strResult[nLen - 1])
+//    {
+//        while (nLen && L'.' == strResult[nLen - 1])
+//        {
+//            --nLen;
+//        }
+//
+//        strResult.Truncate(nLen);
+//    }
+//
+//    m_strPath = strResult;
+//}
 
 
 
@@ -967,45 +978,37 @@ void CWinPath::Combine(LPCWSTR pszDir, LPCWSTR pszFile)
     if (!pszDir && !pszFile)
         return;
 
-    if (!pszDir)
-        pszDir = L"";
+
 
     if (!pszFile)
-        pszFile = L"";
+    {
+        m_strPath = pszDir;
+        return;
+    }
 
-    CWinPath pathResult;
+
+
+    while (*pszFile && L'\\' == *pszFile)
+    {
+        ++pszFile;
+    }
     if (!*pszFile)
     {
-        pathResult = pszDir;
-    }
-    else if (*pszDir && CWinPathApi::IsRelative(pszFile))
-    {
-        pathResult = pszDir;
-        pathResult.AddBackslash();
-        pathResult.m_strPath.Append(pszFile);
-    }
-    else if (*pszDir && L'\\' == *pszFile && !CWinPathApi::IsUNC(pszFile))
-    {
-        // BUGBUG: Note that we do not check that an actual root is returned;
-        // it is assumed that we are given valid parameters
-        pathResult = pszDir;
-        pathResult.StripToRoot();
-        if (!pathResult.IsRoot())
-        {
-            return;
-        }
-
-        pathResult.AddBackslash();
-        pathResult.m_strPath.Append(pszFile + 1);
-    }
-    else 
-    {
-        pathResult.m_strPath.Append(pszFile);
+        m_strPath = pszDir;
+        return;
     }
 
 
-    pathResult.Canonicalize();
-    m_strPath = pathResult.m_strPath;
+    CString strResult = pszDir;
+    while (!strResult.IsEmpty() && L'\\' == strResult[strResult.GetLength() - 1])
+    {
+        strResult.Truncate(strResult.GetLength() - 1);
+    }
+    strResult.Append(L"\\");
+    strResult.Append(pszFile);
+
+
+    m_strPath = strResult;
 }
 
 BOOL CWinPath::CompactPathEx(UINT nMaxChars, DWORD dwFlags)

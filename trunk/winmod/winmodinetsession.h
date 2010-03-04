@@ -8,9 +8,11 @@
 #ifndef WINMODINETSESSION_H
 #define WINMODINETSESSION_H
 
+#include <assert.h>
 #include <atlstr.h>
 #include "winmodinethandle.h"
 #include "winmodinethttpconnection.h"
+#include "winmodinethttpdownloadfile.h"
 
 NS_WINMOD_BEGIN
 
@@ -49,6 +51,16 @@ public:
 
     HRESULT HttpDownload(
         /* [in ] */ IInetHttpDownloadFile*      piDownloadFile,
+        /* [in ] */ IInetHttpDownloadProgress*  piCallback,
+        /* [in ] */ LPCTSTR                     lpszServerName,
+        /* [in ] */ INTERNET_PORT               nServerPort,
+        /* [in ] */ LPCTSTR                     lpObject,
+        /* [in ] */ DWORD                       dwTimeout,
+        /* [out] */ DWORD*                      pdwStatusCode       = NULL,
+        /* [in ] */ LPCTSTR                     lpszSpecHostName    = NULL);
+
+    HRESULT HttpDownload(
+        /* [in ] */ LPCWSTR                     lpszLocalFilePath,
         /* [in ] */ IInetHttpDownloadProgress*  piCallback,
         /* [in ] */ LPCTSTR                     lpszServerName,
         /* [in ] */ INTERNET_PORT               nServerPort,
@@ -178,6 +190,7 @@ inline HRESULT CInetSession::HttpDownload(
         return E_POINTER;
 
 
+    m_hHttpConnection.Close();
     m_hHttpConnection.Attach(HttpConnect(lpszServerName, nServerPort));
     if (!m_hHttpConnection)
         return GetLastError() ? AtlHresultFromLastError() : E_FAIL;
@@ -190,6 +203,38 @@ inline HRESULT CInetSession::HttpDownload(
         dwTimeout,
         pdwStatusCode,
         lpszSpecHostName);  
+}
+
+inline HRESULT CInetSession::HttpDownload(
+    /* [in ] */ LPCWSTR                     lpszLocalFilePath,
+    /* [in ] */ IInetHttpDownloadProgress*  piCallback,
+    /* [in ] */ LPCTSTR                     lpszServerName,
+    /* [in ] */ INTERNET_PORT               nServerPort,
+    /* [in ] */ LPCTSTR                     lpObject,
+    /* [in ] */ DWORD                       dwTimeout,
+    /* [out] */ DWORD*                      pdwStatusCode,
+    /* [in ] */ LPCTSTR                     lpszSpecHostName)
+{
+    assert(lpszLocalFilePath);
+
+    CInetHttpDownloadFile hDownloadFile;
+    HRESULT hr = hDownloadFile.m_hFile.Create(
+        lpszLocalFilePath,
+        GENERIC_WRITE,
+        FILE_SHARE_DELETE,
+        CREATE_ALWAYS);
+    if (FAILED(hr))
+        return hr;
+
+    return HttpDownload(
+        &hDownloadFile,
+        piCallback,
+        lpszServerName,
+        nServerPort,
+        lpObject,
+        dwTimeout,
+        pdwStatusCode,
+        lpszSpecHostName);
 }
 
 inline HRESULT CInetSession::SetConnectTimeOut(DWORD  dwMilliSeconds)
