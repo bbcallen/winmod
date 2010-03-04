@@ -31,16 +31,14 @@ public:
 
     BOOL    FindNextFile();
 
-    // find next and skip the directory tree whose root is current file
+    // skip all child files/dir of current node
     BOOL    FindNextFileSkipCurrentTree();
 
-    // find next file at same level
+    // find next file/dir in the same directory of current node
     BOOL    FindNextSiblingFile();
 
-    // find next file below current level
+    // find first child files/dir of current node
     BOOL    FindFirstChildFile(LPCWSTR pszFileSpec = NULL);
-
-    void    SkipCurrentDirectory();
 
     void    Close();
 
@@ -48,7 +46,7 @@ public:
 public:
     CString GetFullPath();
 
-    CString GetCurrentDirectory();
+    CString GetParentDirectory();
 
 
 protected:

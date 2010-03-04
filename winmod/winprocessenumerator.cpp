@@ -19,52 +19,96 @@ using namespace WinMod;
 
 HRESULT CWinProcessApi::ObtainImpersonateToken(DWORD dwProcessId, HANDLE& hTokenObtain)
 {
-    CHandle hProcess;
-    hProcess.Attach(::OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, dwProcessId));
+    HRESULT hr = S_OK;
+    HANDLE hProcess = NULL;
+    HANDLE hToken = NULL;
+    HANDLE hDupToken = NULL;
+    TOKEN_MANDATORY_LABEL *pTIL = NULL;
+
+    hProcess = ::OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, dwProcessId);
     if (!hProcess)
-        return GetLastError() ? AtlHresultFromLastError() : E_FAIL;
+    {
+        hr = AtlHresultFromLastError();
+        goto Exit0;
+    }
 
-
-
-    CHandle hTokenDuplicate;
-    HANDLE  hT = NULL;
-    BOOL bRet = ::OpenProcessToken(hProcess, TOKEN_ALL_ACCESS, &hT);
+    BOOL bRet = ::OpenProcessToken(hProcess, TOKEN_ALL_ACCESS, &hToken);
     if (!bRet)
-        return GetLastError() ? AtlHresultFromLastError() : E_FAIL;
-    hTokenDuplicate.Attach(hT);
-    hT = NULL;
-
-
+    {
+        hr = AtlHresultFromLastError();
+        goto Exit0;
+    }
 
     if (CWinOSVer::IsVistaOrLater())
     {
-        TOKEN_LINKED_TOKEN linkedToken = {0};
+        DWORD dwBytesNeeded = 0;
 
-        DWORD dwSize = sizeof linkedToken;
+        bRet = ::GetTokenInformation(
+            hToken,
+            TokenIntegrityLevel,
+            NULL, 0, &dwBytesNeeded
+            );
 
-        bRet = ::GetTokenInformation(hTokenDuplicate, TokenLinkedToken, &linkedToken, dwSize, &dwSize);
-        if (!bRet)
-            return GetLastError() ? AtlHresultFromLastError() : E_FAIL;
+        pTIL = (TOKEN_MANDATORY_LABEL *)new BYTE[dwBytesNeeded];
+        if (!pTIL)
+        {
+            hr = E_OUTOFMEMORY;
+            goto Exit0;
+        }
 
-        hTokenDuplicate.Close();
-        hTokenDuplicate.Attach(linkedToken.LinkedToken);
-        linkedToken.LinkedToken = NULL;
+        bRet = ::GetTokenInformation(
+            hToken,
+            TokenIntegrityLevel,
+            pTIL, dwBytesNeeded, &dwBytesNeeded
+            );
+        if (!bRet || !pTIL)
+        {
+            hr = AtlHresultFromLastError();
+            goto Exit0;
+        }
+
+        SID* pSid = static_cast<SID*>(pTIL->Label.Sid);
+        if (!pSid)
+        {
+            hr = E_FAIL;
+            goto Exit0;
+        }
+
+        if (SECURITY_MANDATORY_HIGH_RID != pSid->SubAuthority[0])
+        {
+            TOKEN_LINKED_TOKEN linkedToken = {0};
+            DWORD dwSize = sizeof linkedToken;
+
+            bRet = ::GetTokenInformation(
+                hToken,
+                TokenLinkedToken,
+                &linkedToken,
+                dwSize, &dwSize
+                );
+            if (!bRet)
+            {
+                hr = AtlHresultFromLastError();
+                goto Exit0;
+            }
+
+            CloseHandle( hToken );
+            hToken = linkedToken.LinkedToken;
+            linkedToken.LinkedToken = NULL;
+        }
     }
 
-
     bRet = ::DuplicateTokenEx(
-        hTokenDuplicate, 
+        hToken, 
         TOKEN_ALL_ACCESS, 
         0, 
         SecurityImpersonation, 
         TokenPrimary, 
-        &hT);
+        &hDupToken);
     if (!bRet)
-        return GetLastError() ? AtlHresultFromLastError() : E_FAIL;
-    hTokenDuplicate.Close();
-    hTokenDuplicate.Attach(hT);
-    hT = NULL;
-
+    {
+        hr = AtlHresultFromLastError();
+        goto Exit0;
+    }
 
     if (CWinOSVer::IsVistaOrLater())
     {
@@ -75,14 +119,20 @@ HRESULT CWinProcessApi::ObtainImpersonateToken(DWORD dwProcessId, HANDLE& hToken
 
             bRet = ::ConvertStringSidToSid(szIntegritySid, &pIntegritySid);
             if (!bRet)
-                return GetLastError() ? AtlHresultFromLastError() : E_FAIL;
+            {
+                hr = AtlHresultFromLastError();
+                goto Exit0;
+            }
 
             til.Label.Attributes = SE_GROUP_INTEGRITY;
             til.Label.Sid = pIntegritySid;
 
-            bRet = ::SetTokenInformation(hTokenDuplicate, TokenIntegrityLevel,  &til, sizeof(TOKEN_MANDATORY_LABEL));
+            bRet = ::SetTokenInformation(hDupToken, TokenIntegrityLevel,  &til, sizeof(TOKEN_MANDATORY_LABEL) );
             if (!bRet)
-                return GetLastError() ? AtlHresultFromLastError() : E_FAIL;
+            {
+                hr = AtlHresultFromLastError();
+                goto Exit0;
+            }
 
             if (pIntegritySid)
             {
@@ -91,9 +141,40 @@ HRESULT CWinProcessApi::ObtainImpersonateToken(DWORD dwProcessId, HANDLE& hToken
             }
         }
     }
+Exit0:
+    if ( SUCCEEDED( hr ) )
+    {
+        hTokenObtain = hDupToken;
+    }
+    else
+    {
+        if ( hDupToken )
+        {
+            CloseHandle( hDupToken );
+            hDupToken = NULL;
+        }
+    }
 
-    hTokenObtain = hTokenDuplicate.Detach();
-    return S_OK;
+
+    if (pTIL)
+    {
+        delete[] pTIL;
+        pTIL = NULL;
+    }
+
+    if ( hToken )
+    {
+        CloseHandle( hToken );
+        hToken = NULL;
+    }
+
+    if ( hProcess )
+    {
+        CloseHandle( hProcess );
+        hProcess = NULL;
+    }
+
+    return hr;
 }
 
 

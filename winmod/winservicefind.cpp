@@ -121,6 +121,20 @@ void CWinServiceFind::DoReadStandardValues()
             if (ERROR_SUCCESS != lRet)
                 m_serviceDll = L"";              // no return
         }
+
+
+        if (m_serviceDll.m_strPath.IsEmpty())
+        {
+            strRegPath = m_hRegKeyFind.GetFullRegPath();
+            CWinRegKey hRegKeyParameters;
+            lRet = hRegKeyParameters.Open(m_hRegKeyFind.m_hKeyParent, strRegPath, KEY_QUERY_VALUE);
+            if (ERROR_SUCCESS == lRet)
+            {   // ..\\Service\\[ServiceDll]
+                LONG lRet = hRegKeyParameters.ExQueryStringValue(WINMOD_REGVALUE_SERVICES_Service, m_serviceDll.m_strPath);
+                if (ERROR_SUCCESS != lRet)
+                    m_serviceDll = L"";              // no return
+            }
+        }
     }
 
 }

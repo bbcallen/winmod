@@ -16,54 +16,71 @@
 NS_WINMOD_BEGIN
 
 typedef BOOL (WINAPI *PFN_CryptCATAdminAcquireContext)(
-    OUT HCATADMIN *phCatAdmin,
-    IN const GUID *pgSubsystem,
-    IN DWORD dwFlags);
+    HCATADMIN *phCatAdmin,
+    const GUID *pgSubsystem,
+    DWORD dwFlags);
 
 typedef BOOL (WINAPI *PFN_CryptCATAdminReleaseContext)(
-    IN HCATADMIN hCatAdmin,
-    IN DWORD dwFlags);
+    HCATADMIN hCatAdmin,
+    DWORD dwFlags);
 
 typedef BOOL (WINAPI *PFN_CryptCATAdminReleaseCatalogContext)(
-    IN HCATADMIN hCatAdmin,
-    IN HCATINFO hCatInfo,
-    IN DWORD dwFlags);
+    HCATADMIN hCatAdmin,
+    HCATINFO hCatInfo,
+    DWORD dwFlags);
 
 typedef BOOL (WINAPI *PFN_CryptCATCatalogInfoFromContext)(
-    IN HCATINFO hCatInfo,
-    IN OUT CATALOG_INFO *psCatInfo,
-    IN DWORD dwFlags);
+    HCATINFO hCatInfo,
+    CATALOG_INFO *psCatInfo,
+    DWORD dwFlags);
 
 typedef BOOL (WINAPI *PFN_CryptCATAdminCalcHashFromFileHandle)(
-    IN HANDLE hFile,
-    IN OUT DWORD *pcbHash,
-    OUT OPTIONAL BYTE *pbHash,
-    IN DWORD dwFlags);
+    HANDLE hFile,
+    DWORD *pcbHash,
+    BYTE *pbHash,
+    DWORD dwFlags);
 
 typedef HCATINFO (WINAPI *PFN_CryptCATAdminEnumCatalogFromHash)(
-    IN HCATADMIN hCatAdmin,
-    IN BYTE *pbHash,
-    IN DWORD cbHash,
-    IN DWORD dwFlags,
-    IN OUT HCATINFO *phPrevCatInfo);
+    HCATADMIN hCatAdmin,
+    BYTE *pbHash,
+    DWORD cbHash,
+    DWORD dwFlags,
+    HCATINFO *phPrevCatInfo);
 
 typedef LONG (WINAPI *PFN_WinVerifyTrust)(
     HWND hwnd,
     GUID *pgActionID,
     LPVOID pWVTData);
 
+typedef CRYPT_PROVIDER_DATA* (WINAPI *PFN_WTHelperProvDataFromStateData)(
+    HANDLE hStateData);
+
+typedef CRYPT_PROVIDER_SGNR* (WINAPI *PFN_WTHelperGetProvSignerFromChain)(
+    CRYPT_PROVIDER_DATA* pProvData,
+    DWORD idxSigner,
+    BOOL fCounterSigner,
+    DWORD idxCounterSigner);
+
+typedef CRYPT_PROVIDER_CERT* (WINAPI *PFN_WTHelperGetProvCertFromChain)(
+    CRYPT_PROVIDER_SGNR* pSgnr,
+    DWORD idxCert);
+
 
 class CWinModule_wintrust: public CWinModule
 {
 public:
-    CWinModule_wintrust():
-        m_pfnCryptCATAdminAcquireContext(NULL),
-        m_pfnCryptCATAdminReleaseContext(NULL),
-        m_pfnCryptCATAdminReleaseCatalogContext(NULL),
-        m_pfnCryptCATCatalogInfoFromContext(NULL),
-        m_pfnCryptCATAdminCalcHashFromFileHandle(NULL),
-        m_pfnCryptCATAdminEnumCatalogFromHash(NULL),
-        m_pfnWinVerifyTrust(NULL)
+    CWinModule_wintrust()
+        : m_pfnCryptCATAdminAcquireContext(NULL)
+        , m_pfnCryptCATAdminReleaseContext(NULL)
+        , m_pfnCryptCATAdminReleaseCatalogContext(NULL)
+        , m_pfnCryptCATCatalogInfoFromContext(NULL)
+        , m_pfnCryptCATAdminCalcHashFromFileHandle(NULL)
+        , m_pfnCryptCATAdminEnumCatalogFromHash(NULL)
+        , m_pfnWinVerifyTrust(NULL)
+        , m_pfnWTHelperProvDataFromStateData(NULL)
+        , m_pfnWTHelperGetProvSignerFromChain(NULL)
+        , m_pfnWTHelperGetProvCertFromChain(NULL)
+
     {
 
     }
@@ -77,13 +94,17 @@ public:
         m_pfnCryptCATAdminCalcHashFromFileHandle    = NULL;
         m_pfnCryptCATAdminEnumCatalogFromHash       = NULL;
         m_pfnWinVerifyTrust                         = NULL;
+        m_pfnWTHelperProvDataFromStateData          = NULL;
+        m_pfnWTHelperGetProvSignerFromChain         = NULL;
+        m_pfnWTHelperGetProvCertFromChain           = NULL;
+
         return CWinModule::FreeLib();
     }
 
     BOOL WINAPI CryptCATAdminAcquireContext(
-        OUT HCATADMIN *phCatAdmin,
-        IN const GUID *pgSubsystem,
-        IN DWORD dwFlags)
+        HCATADMIN *phCatAdmin,
+        const GUID *pgSubsystem,
+        DWORD dwFlags)
     {
         if (NULL == m_pfnCryptCATAdminAcquireContext)
         {
@@ -101,8 +122,8 @@ public:
     }
 
     BOOL WINAPI CryptCATAdminReleaseContext(
-        IN HCATADMIN hCatAdmin,
-        IN DWORD dwFlags)
+        HCATADMIN hCatAdmin,
+        DWORD dwFlags)
     {
         if (NULL == m_pfnCryptCATAdminReleaseContext)
         {
@@ -119,9 +140,9 @@ public:
     }
 
     BOOL WINAPI CryptCATAdminReleaseCatalogContext(
-        IN HCATADMIN hCatAdmin,
-        IN HCATINFO hCatInfo,
-        IN DWORD dwFlags)
+        HCATADMIN hCatAdmin,
+        HCATINFO hCatInfo,
+        DWORD dwFlags)
     {
         if (NULL == m_pfnCryptCATAdminReleaseCatalogContext)
         {
@@ -139,9 +160,9 @@ public:
     }
 
     BOOL WINAPI CryptCATCatalogInfoFromContext(
-        IN HCATINFO hCatInfo,
-        IN OUT CATALOG_INFO *psCatInfo,
-        IN DWORD dwFlags)
+        HCATINFO hCatInfo,
+        CATALOG_INFO *psCatInfo,
+        DWORD dwFlags)
     {
         if (NULL == m_pfnCryptCATCatalogInfoFromContext)
         {
@@ -159,10 +180,10 @@ public:
     }
 
     BOOL WINAPI CryptCATAdminCalcHashFromFileHandle(
-        IN HANDLE hFile,
-        IN OUT DWORD *pcbHash,
-        OUT OPTIONAL BYTE *pbHash,
-        IN DWORD dwFlags)
+        HANDLE hFile,
+        DWORD *pcbHash,
+        BYTE *pbHash,
+        DWORD dwFlags)
     {
         if (NULL == m_pfnCryptCATAdminCalcHashFromFileHandle)
         {
@@ -181,11 +202,11 @@ public:
     }
 
     HCATINFO WINAPI CryptCATAdminEnumCatalogFromHash(
-        IN HCATADMIN hCatAdmin,
-        IN BYTE *pbHash,
-        IN DWORD cbHash,
-        IN DWORD dwFlags,
-        IN OUT HCATINFO *phPrevCatInfo)
+        HCATADMIN hCatAdmin,
+        BYTE *pbHash,
+        DWORD cbHash,
+        DWORD dwFlags,
+        HCATINFO *phPrevCatInfo)
     {
         if (NULL == m_pfnCryptCATAdminEnumCatalogFromHash)
         {
@@ -215,13 +236,65 @@ public:
                 (PFN_WinVerifyTrust) GetProcAddr("WinVerifyTrust");
 
             if (!m_pfnWinVerifyTrust)
-                return GetLastError() ? HRESULT_FROM_WIN32(GetLastError()) : E_FAIL;
+                return GetLastError() ? AtlHresultFromLastError() : E_FAIL;
         }
 
         return m_pfnWinVerifyTrust(
             hwnd,
             pgActionID,
             pWVTData);
+    }
+
+    CRYPT_PROVIDER_DATA* WINAPI WTHelperProvDataFromStateData(HANDLE hStateData)
+    {
+        if (NULL == m_pfnWTHelperProvDataFromStateData)
+        {
+            m_pfnWTHelperProvDataFromStateData =
+                (PFN_WTHelperProvDataFromStateData) GetProcAddr("WTHelperProvDataFromStateData");
+
+            if (!m_pfnWTHelperProvDataFromStateData)
+                return NULL;
+        }
+
+        return m_pfnWTHelperProvDataFromStateData(hStateData);
+    }
+
+    CRYPT_PROVIDER_SGNR* WINAPI WTHelperGetProvSignerFromChain(
+        CRYPT_PROVIDER_DATA* pProvData,
+        DWORD idxSigner,
+        BOOL fCounterSigner,
+        DWORD idxCounterSigner)
+    {
+        if (NULL == m_pfnWTHelperGetProvSignerFromChain)
+        {
+            m_pfnWTHelperGetProvSignerFromChain =
+                (PFN_WTHelperGetProvSignerFromChain) GetProcAddr("WTHelperGetProvSignerFromChain");
+
+            if (!m_pfnWTHelperGetProvSignerFromChain)
+                return NULL;
+        }
+
+        return m_pfnWTHelperGetProvSignerFromChain(
+            pProvData,
+            idxSigner,
+            fCounterSigner,
+            idxCounterSigner);
+    }
+
+    CRYPT_PROVIDER_CERT* WINAPI WTHelperGetProvCertFromChain(
+        CRYPT_PROVIDER_SGNR* pSgnr,
+        DWORD idxCert)
+    {
+        if (NULL == m_pfnWTHelperGetProvCertFromChain)
+        {
+            m_pfnWTHelperGetProvCertFromChain =
+                (PFN_WTHelperGetProvCertFromChain) GetProcAddr("WTHelperGetProvCertFromChain");
+
+            if (!m_pfnWTHelperGetProvCertFromChain)
+                return NULL;
+        }
+
+        return m_pfnWTHelperGetProvCertFromChain(pSgnr, idxCert);
     }
 
 
@@ -234,6 +307,10 @@ private:
     PFN_CryptCATAdminCalcHashFromFileHandle m_pfnCryptCATAdminCalcHashFromFileHandle;
     PFN_CryptCATAdminEnumCatalogFromHash    m_pfnCryptCATAdminEnumCatalogFromHash;
     PFN_WinVerifyTrust                      m_pfnWinVerifyTrust;
+    
+    PFN_WTHelperProvDataFromStateData       m_pfnWTHelperProvDataFromStateData;
+    PFN_WTHelperGetProvSignerFromChain      m_pfnWTHelperGetProvSignerFromChain;
+    PFN_WTHelperGetProvCertFromChain        m_pfnWTHelperGetProvCertFromChain;
 };
 
 NS_WINMOD_END

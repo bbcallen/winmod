@@ -81,7 +81,8 @@ public:
         CSid&   sid,
         DWORD   dwAllowedAccess,
         DWORD   dwDeniedAccess,
-        BOOL    bRemoveOldAces = TRUE);
+        BOOL    bRemoveOldAces = TRUE,
+        DWORD   AceFlags = 0);
 
 
 
@@ -123,7 +124,7 @@ public:
     BOOL        AddExtension(LPCWSTR pszExtension);
     BOOL        Append(LPCWSTR pszMore);
     void        BuildRoot(int iDrive);
-    void        Canonicalize();
+    //void        Canonicalize();
     void        Combine(LPCWSTR pszDir, LPCWSTR pszFile);
     //CWinPath    CommonPrefix(LPCWSTR pszOther );
     //BOOL        CompactPath(HDC hDC, UINT nWidth);

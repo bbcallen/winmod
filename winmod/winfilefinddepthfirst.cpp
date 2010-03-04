@@ -172,11 +172,6 @@ BOOL CWinFileFindDepthFirst::FindFirstChildFile(LPCWSTR pszFileSpec)
     return TRUE;
 }
 
-void CWinFileFindDepthFirst::SkipCurrentDirectory()
-{
-    PopNode();
-}
-
 void CWinFileFindDepthFirst::Close()
 {
     m_pathParent.m_strPath.Empty();
@@ -198,7 +193,7 @@ CString CWinFileFindDepthFirst::GetFullPath()
     return m_pathParent.m_strPath + L"\\" + CWinFileFindData::GetFileName();
 }
 
-CString CWinFileFindDepthFirst::GetCurrentDirectory()
+CString CWinFileFindDepthFirst::GetParentDirectory()
 {
     return m_pathParent.m_strPath;
 }

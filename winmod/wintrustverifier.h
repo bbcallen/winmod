@@ -8,10 +8,28 @@
 #ifndef WINTRUSTVERIFIER_H
 #define WINTRUSTVERIFIER_H
 
+#include <wincrypt.h>
 #include "winmod\winmodbase.h"
 #include "winmod\wintrustmod.h"
 
 NS_WINMOD_BEGIN
+
+
+class CWinTrustSignerInfo
+{
+public:
+    CString m_strIsserName;
+    CString m_strIsserNameRaw;
+};
+
+class CWinTrustSignerInfoChain
+{
+public:
+    typedef CAtlList<CWinTrustSignerInfo> CSignInfoChain;
+
+    CSignInfoChain m_chain;
+};
+
 
 /// MSDN says WinVerifyTrust may be altered or unavailable 
 /// in subsequent versions, so we call LoadLibaray to obtain WinVerifyTrust
@@ -19,17 +37,24 @@ class CWinTrustVerifier
 {
 public:
 
-    DWORD   VerifyFile(LPCWSTR pwszFileFullPath);
+    DWORD   VerifyFile(LPCWSTR pwszFileFullPath, CWinTrustSignerInfoChain* pSignInfoChain = NULL);
 
-    DWORD   VerifyFile(LPCWSTR pwszFileFullPath, HANDLE hFile);
+    DWORD   VerifyFile(LPCWSTR pwszFileFullPath, HANDLE hFile, CWinTrustSignerInfoChain* pSignInfoChain);
 
-    DWORD   VerifyEmbeddedWinTrustFile(LPCWSTR pwszFileFullPath, HANDLE hFile);
+    DWORD   VerifyEmbeddedWinTrustFile(LPCWSTR pwszFileFullPath, HANDLE hFile, CWinTrustSignerInfoChain* pSignInfoChain);
 
-    DWORD   VerifyEmbeddedSignature(LPCWSTR pwszFileFullPath, HANDLE hFile, GUID& policyGUID);
+    DWORD   VerifyEmbeddedSignature(LPCWSTR pwszFileFullPath, HANDLE hFile, GUID& policyGUID, CWinTrustSignerInfoChain* pSignInfoChain);
 
-    DWORD   VerifyCatalogSignature(LPCWSTR pwszFileFullPath, HANDLE hFile);
+    DWORD   VerifyCatalogSignature(LPCWSTR pwszFileFullPath, HANDLE hFile, CWinTrustSignerInfoChain* pSignInfoChain);
+
+    HRESULT GetSignerInfo(const WINTRUST_DATA* pWintrustData, CWinTrustSignerInfoChain* pSignInfoChain);
+
+    HRESULT GetCertNameCString(PCCERT_CONTEXT pCertContext, CString& strIssuerName);
+    
+    HRESULT CertNameToCString(PCERT_NAME_BLOB pName, CString& strIssuerNameRaw);
 
     BOOL    HasEmbeddedSignature(HANDLE hFile);
+
 
     static BOOL IsPEFile(LPCWSTR pwszFileFullPath);
 
