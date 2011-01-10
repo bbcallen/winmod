@@ -10,7 +10,7 @@
 
 #include <atlstr.h>
 #include <atlbase.h>
-#include "winmod\winregkeyfind.h"
+#include "winregkeyfind.h"
 
 NS_WINMOD_BEGIN
 

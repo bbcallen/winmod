@@ -463,9 +463,16 @@ HRESULT CWinPathApi::ResolveLnkFile(LPCWSTR pszLnkFile, CString& strTargetPath, 
     if (FAILED(hr))
         return hr;
 
+    try
+    {
+        // Open the shortcut file and initialize it from its contents
+        hr = spiPersistFile->Load(pszLnkFile, STGM_READ); 
+    }
+    catch ( ... )
+    {
+        hr = E_UNEXPECTED;
+    }
 
-    // Open the shortcut file and initialize it from its contents
-    hr = spiPersistFile->Load(pszLnkFile, STGM_READ); 
     if (FAILED(hr))
         return hr;
 

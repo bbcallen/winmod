@@ -9,7 +9,7 @@
 #define SLTOKENSTACK_H
 
 #include <atlcoll.h>
-#include "winmod\winmodbase.h"
+#include "winmodbase.h"
 
 NS_WINMOD_BEGIN
 

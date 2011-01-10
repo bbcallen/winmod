@@ -12,8 +12,8 @@
 #include <atlstr.h>
 #include <atlcoll.h>
 #include <atlbase.h>
-#include "winmod\winregkeyfind.h"
-#include "winmod\winregvaluefind.h"
+#include "winregkeyfind.h"
+#include "winregvaluefind.h"
 
 NS_WINMOD_BEGIN
 
