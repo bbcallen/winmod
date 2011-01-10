@@ -9,8 +9,10 @@
 #define WINTRUSTVERIFIER_H
 
 #include <wincrypt.h>
-#include "winmod\winmodbase.h"
-#include "winmod\wintrustmod.h"
+#include <atlcoll.h>
+#include <atlstr.h>
+#include "winmodbase.h"
+#include "wintrustmod.h"
 
 NS_WINMOD_BEGIN
 
@@ -59,6 +61,10 @@ public:
     static BOOL IsPEFile(LPCWSTR pwszFileFullPath);
 
     static BOOL IsPEFile(HANDLE hFile);
+
+    static BOOL IsPEFileOrEICAR(LPCWSTR pwszFileFullPath);
+
+    static BOOL IsPEFileOrEICAR(HANDLE hFile);
 
     static BOOL IsWinTrustRetCode(DWORD dwRetCode);
 

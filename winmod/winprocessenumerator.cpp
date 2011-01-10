@@ -10,8 +10,8 @@
 
 #include <sddl.h>
 #include <atlpath.h>
-#include "winmod\winosver.h"
-#include "winmod\winpath.h"
+#include "winosver.h"
+#include "winpath.h"
 
 #pragma comment(lib, "psapi.lib")
 

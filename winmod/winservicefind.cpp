@@ -9,7 +9,7 @@
 #include "winservicefind.h"
 
 #include <assert.h>
-#include "winmod\winmodule.h"
+#include "winmodule.h"
 
 using namespace WinMod;
 

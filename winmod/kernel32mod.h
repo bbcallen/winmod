@@ -9,7 +9,7 @@
 #define KERNEL32MOD_H
 
 #include <psapi.h>
-#include "winmod\winmodule.h"
+#include "winmodule.h"
 
 typedef void (WINAPI *PFN_GetNativeSystemInfo)(__out  LPSYSTEM_INFO lpSystemInfo);
 typedef BOOL (WINAPI *PFN_GetProductInfo)(DWORD, DWORD, DWORD, DWORD, PDWORD);

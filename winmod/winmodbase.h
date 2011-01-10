@@ -23,4 +23,8 @@ NS_WINMOD_END
 #define MAKE_WINMOD_HTTP_ERROR(x)               HRESULT(0xA0020000 | (0xFFFF & x))
 
 
+#define WINMOD_HTTP__APPLICATION__X_WWW_FORM_URLENCODED     L"application/x-www-form-urlencoded"
+#define WINMOD_HTTP__APPLICATION__X_OCTET_STREAM            L"application/octet-stream"
+
+
 #endif//WINMODBASE_H

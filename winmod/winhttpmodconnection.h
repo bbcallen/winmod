@@ -1,21 +1,21 @@
 /**
-* @file    winmodinethttpconnection.h
+* @file    winhttpmodconnection.h
 * @brief   ...
 * @author  bbcallen
-* @date    2009-08-07 15:13
+* @date    2010-05-04 15:49
 */
 
-#ifndef WINMODINETHTTPCONNECTION_H
-#define WINMODINETHTTPCONNECTION_H
+#ifndef WINHTTPMODCONNECTION_H
+#define WINHTTPMODCONNECTION_H
 
 #include <atlstr.h>
-#include "winmodinetconnection.h"
-#include "winmodinethttpfile.h"
+#include "winhttpmodhandle.h"
+#include "winhttpmodfile.h"
 
 NS_WINMOD_BEGIN
 
 // 下载回调接口
-class IInetHttpDownloadFile
+class IWinHttpDownloadFile
 {
 public:
 
@@ -31,7 +31,7 @@ public:
     virtual HRESULT STDMETHODCALLTYPE Flush() = 0;
 };
 
-class IInetHttpDownloadProgress
+class IWinHttpDownloadProgress
 {
 public:
     virtual HRESULT STDMETHODCALLTYPE OnReceiveData(
@@ -42,13 +42,25 @@ public:
 };
 
 
-class CInetHttpConnection: public CInetConnection
+class CWinHttpConnection: public CWinHttpHandle
 {
 public:
-    CInetHttpConnection();
-    virtual ~CInetHttpConnection();
+    CWinHttpConnection();
+    virtual ~CWinHttpConnection();
 
-    virtual void Close() {Interrupt(); CInetConnection::Close();}
+    virtual void Close() {Interrupt(); CWinHttpHandle::Close();}
+
+
+    HRESULT SetConnectTimeOut(DWORD  dwMilliSeconds);
+    HRESULT GetConnectTimeOut(DWORD& dwMilliSeconds);
+
+    HRESULT SetReceiveTimeOut(DWORD  dwMilliSeconds);
+    HRESULT GetReceiveTimeOut(DWORD& dwMilliSeconds);
+
+    HRESULT SetSendTimeOut(DWORD  dwMilliSeconds);
+    HRESULT GetSendTimeOut(DWORD& dwMilliSeconds);
+
+
 
     // pstrVerb could be one of:
     // "POST"
@@ -64,7 +76,7 @@ public:
         LPCTSTR     pstrVersion         = NULL,
         LPCTSTR     pstrReferer         = NULL,
         LPCTSTR*    ppstrAcceptTypes    = NULL,
-        DWORD       dwFlags             = INTERNET_FLAG_EXISTING_CONNECT,
+        DWORD       dwFlags             = 0,
         DWORD_PTR   dwContext           = 1);
 
     // lpszContentType could be one of:
@@ -81,8 +93,8 @@ public:
         /* [in ] */ LPCTSTR         lpszSpecHostName    = NULL);
 
     HRESULT HttpDownload(
-        /* [in ] */ IInetHttpDownloadFile*      piDownloadFile,
-        /* [in ] */ IInetHttpDownloadProgress*  piCallback,
+        /* [in ] */ IWinHttpDownloadFile*       piDownloadFile,
+        /* [in ] */ IWinHttpDownloadProgress*   piCallback,
         /* [in ] */ LPCTSTR                     lpObject,
         /* [in ] */ DWORD                       dwTimeout,
         /* [out] */ DWORD*                      pdwStatusCode       = NULL,
@@ -92,30 +104,59 @@ public:
 
 private:
     // denied
-    CInetHttpConnection(CInetHttpConnection& h);
-    explicit CInetHttpConnection(HANDLE h);
-    CInetHttpConnection& operator=(CInetHttpConnection& h);
+    CWinHttpConnection(CWinHttpConnection& h);
+    explicit CWinHttpConnection(HANDLE h);
+    CWinHttpConnection& operator=(CWinHttpConnection& h);
 
 private:
 
     // used by HttpRequest and HttpDownload
-    CInetHttpFile m_hHttpFile;
+    CWinHttpFile m_hHttpFile;
 };
 
 
 
 
-inline CInetHttpConnection::CInetHttpConnection()
+inline CWinHttpConnection::CWinHttpConnection()
 {
 }
 
-inline CInetHttpConnection::~CInetHttpConnection()
+inline CWinHttpConnection::~CWinHttpConnection()
 {
 }
 
 
+inline HRESULT CWinHttpConnection::SetConnectTimeOut(DWORD  dwMilliSeconds)
+{
+    return DoSetOptionDWORD(WINHTTP_OPTION_CONNECT_TIMEOUT, dwMilliSeconds);
+}
 
-inline HINTERNET CInetHttpConnection::OpenRequest(
+inline HRESULT CWinHttpConnection::GetConnectTimeOut(DWORD& dwMilliSeconds)
+{
+    return DoGetOptionDWORD(WINHTTP_OPTION_CONNECT_TIMEOUT, dwMilliSeconds);
+}
+
+inline HRESULT CWinHttpConnection::SetReceiveTimeOut(DWORD  dwMilliSeconds)
+{
+    return DoSetOptionDWORD(WINHTTP_OPTION_RECEIVE_TIMEOUT, dwMilliSeconds);
+}
+
+inline HRESULT CWinHttpConnection::GetReceiveTimeOut(DWORD& dwMilliSeconds)
+{
+    return DoGetOptionDWORD(WINHTTP_OPTION_RECEIVE_TIMEOUT, dwMilliSeconds);
+}
+
+inline HRESULT CWinHttpConnection::SetSendTimeOut(DWORD  dwMilliSeconds)
+{
+    return DoSetOptionDWORD(WINHTTP_OPTION_SEND_TIMEOUT, dwMilliSeconds);
+}
+
+inline HRESULT CWinHttpConnection::GetSendTimeOut(DWORD& dwMilliSeconds)
+{
+    return DoGetOptionDWORD(WINHTTP_OPTION_SEND_TIMEOUT, dwMilliSeconds);
+}
+
+inline HINTERNET CWinHttpConnection::OpenRequest(
     LPCTSTR     pstrVerb,
     LPCTSTR     pstrObjectName,
     LPCTSTR     pstrVersion,
@@ -125,15 +166,14 @@ inline HINTERNET CInetHttpConnection::OpenRequest(
     DWORD_PTR   dwContext)
 {
     assert(m_h);
-    HINTERNET hFile = ::HttpOpenRequest(
+    HINTERNET hFile = ::WinHttpOpenRequest(
         m_h,
         pstrVerb,
         pstrObjectName,
         pstrVersion,
         pstrReferer,
         ppstrAcceptTypes,
-        dwFlags,
-        dwContext);
+        dwFlags);
     if (!hFile)
         return NULL;
 
@@ -141,7 +181,7 @@ inline HINTERNET CInetHttpConnection::OpenRequest(
 }
 
 
-inline void CInetHttpConnection::Interrupt()
+inline void CWinHttpConnection::Interrupt()
 {
     m_hHttpFile.Close();
 }
@@ -149,4 +189,4 @@ inline void CInetHttpConnection::Interrupt()
 
 NS_WINMOD_END
 
-#endif//WINMODINETHTTPCONNECTION_H
+#endif//WINHTTPMODCONNECTION_H

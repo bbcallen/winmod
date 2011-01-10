@@ -1,18 +1,18 @@
 /**
-* @file    winmodinethttpconnection.cpp
+* @file    winhttpmodconnection.cpp
 * @brief   ...
-* @author  zhangrui
-* @date    2009-08-07 15:14
+* @author  bbcallen
+* @date    2010-05-04 15:49
 */
 
 #include "stdafx.h"
-#include "winmodinethttpconnection.h"
+#include "winhttpmodconnection.h"
 
-#include "winmodinet.h"
+#include "winhttpmod.h"
 
 using namespace WinMod;
 
-HRESULT CInetHttpConnection::HttpRequest(
+HRESULT CWinHttpConnection::HttpRequest(
     /* [in ] */ LPCTSTR         lpObject,
     /* [in ] */ DWORD           dwTimeout,
     /* [in ] */ LPCTSTR         lpszContentType,
@@ -108,9 +108,9 @@ HRESULT CInetHttpConnection::HttpRequest(
 
 
 
-HRESULT CInetHttpConnection::HttpDownload(
-    /* [in ] */ IInetHttpDownloadFile*      piDownloadFile,
-    /* [in ] */ IInetHttpDownloadProgress*  piCallback,
+HRESULT CWinHttpConnection::HttpDownload(
+    /* [in ] */ IWinHttpDownloadFile*       piDownloadFile,
+    /* [in ] */ IWinHttpDownloadProgress*   piCallback,
     /* [in ] */ LPCTSTR                     lpObject,
     /* [in ] */ DWORD                       dwTimeout,
     /* [out] */ DWORD*                      pdwStatusCode,

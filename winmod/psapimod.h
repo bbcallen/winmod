@@ -9,7 +9,7 @@
 #define PSAPIMOD_H
 
 #include <psapi.h>
-#include "winmod\winmodule.h"
+#include "winmodule.h"
 
 NS_WINMOD_BEGIN
 

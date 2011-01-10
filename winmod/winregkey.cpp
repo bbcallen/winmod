@@ -10,7 +10,7 @@
 
 #include <assert.h>
 #include <algorithm>
-#include "winmod\winpath.h"
+#include "winpath.h"
 
 using namespace WinMod;
 

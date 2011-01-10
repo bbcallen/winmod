@@ -190,7 +190,9 @@ void CWinFileFindDepthFirst::Close()
 
 CString CWinFileFindDepthFirst::GetFullPath()
 {
-    return m_pathParent.m_strPath + L"\\" + CWinFileFindData::GetFileName();
+    CWinPath pathFull = m_pathParent.m_strPath;
+    pathFull.Append(CWinFileFindData::GetFileName());
+    return pathFull.m_strPath;
 }
 
 CString CWinFileFindDepthFirst::GetParentDirectory()

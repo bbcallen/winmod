@@ -11,7 +11,7 @@
 #include <Wintrust.h>
 #include <softpub.h>
 #include <Mscat.h>
-#include "winmod\winmodule.h"
+#include "winmodule.h"
 
 NS_WINMOD_BEGIN
 

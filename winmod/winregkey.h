@@ -11,7 +11,7 @@
 #include <atlstr.h>
 #include <atlcoll.h>
 #include <atlbase.h>
-#include "winmod\winmodbase.h"
+#include "winmodbase.h"
 
 NS_WINMOD_BEGIN
 

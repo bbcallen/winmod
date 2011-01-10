@@ -14,9 +14,9 @@
 #include <atlbase.h>
 #include <atlcoll.h>
 #include <atlstr.h>
-#include "winmod\winmodbase.h"
-#include "winmod\wintokenstack.h"
-#include "winmod\psapimod.h"
+#include "winmodbase.h"
+#include "wintokenstack.h"
+#include "psapimod.h"
 
 NS_WINMOD_BEGIN
 

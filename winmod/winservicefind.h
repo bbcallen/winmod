@@ -10,9 +10,9 @@
 
 #include <atlstr.h>
 #include <atlbase.h>
-#include "winmod\winmodbase.h"
-#include "winmod\winpath.h"
-#include "winmod\winregkeyfind.h"
+#include "winmodbase.h"
+#include "winpath.h"
+#include "winregkeyfind.h"
 
 NS_WINMOD_BEGIN
 

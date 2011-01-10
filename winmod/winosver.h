@@ -8,7 +8,7 @@
 #ifndef WINOSVER_H
 #define WINOSVER_H
 
-#include "winmod\winmodbase.h"
+#include "winmodbase.h"
 
 NS_WINMOD_BEGIN
 
