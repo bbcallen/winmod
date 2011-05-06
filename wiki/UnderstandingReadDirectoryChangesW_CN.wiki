@@ -151,7 +151,7 @@ void CChangeHandler::BeginRead()
 }
 }}}
 
-　　由于我们使用了重叠I/O，m_Buffer知道完成例程被调用的时候才会填充。
+　　由于我们使用了重叠I/O，m_Buffer直到完成例程被调用的时候才会填充。
 
 
 == 分派完成例程 ===
