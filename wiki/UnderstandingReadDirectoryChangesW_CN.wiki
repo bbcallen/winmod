@@ -241,7 +241,7 @@ void Run()
  # 完成例程删除 CReadChangesRequest 对象，减少 nOutstandingRequests 计数，然后在不发起新请求的情况下返回。
  # 由于一个或多个APCs完成，SleepEx返回。nOutstandingRequests 为0，bTerminate 为true，于是函数退出，线程被干净的结束。
 
-　　万一关停没有被合适的锤炼，主线程会以一个超时时间等待工作线程结束。如果工作线程没有顺利结束，我们就让 Windows 结束时干掉它。
+　　万一关停没有被合适的处理，主线程会根据一个超时时间等待工作线程结束。如果工作线程没有顺利结束，我们就让 Windows 结束时干掉它。
 
 
 == 网络驱动器 ==
