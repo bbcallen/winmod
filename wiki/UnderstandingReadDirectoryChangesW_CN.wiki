@@ -75,7 +75,7 @@ _世界上最长，最详细的 ReadDirectoryChangesW 的使用方法描述。_
 
 　　*简单* - A2C3D1 - 在单独的线程中调用 ReadDirectoryChangesW，然后通过 PostMessage 发送给主线程。对于性能要求不高的 GUI 程序最合适。在 CodeProject 上的 [http://www.codeproject.com/KB/files/directorychangewatcher.aspx CDirectoryChangeWatcher] 就是使用的这个策略。微软的 [http://www.experts-exchange.com/Programming/Languages/CPP/Q_22507220.html FWATCH 例子] 也是使用的这个策略。
 
-　　*性能* - A4C6D4 - 性能最好的解决方案是使用I/O完成端口，但是，这个激进的多线程方案是在太过复杂，应当仅限在服务器上使用。对任何 GUI 程序来说，这个方案似乎都是不必要的。如果你不是一个多线程专家，请远离这个策略。
+　　*性能* - A4C6D4 - 性能最好的解决方案是使用I/O完成端口，但是，这个激进的多线程方案实在太过复杂，应当仅限在服务器上使用。对任何 GUI 程序来说，这个方案似乎都是不必要的。如果你不是一个多线程专家，请远离这个策略。
 
 　　*平衡* - A4C5D3 - 通过完成例程(Completion Routines)，在一个线程中完成所有工作。你可以发起尽可能多的 ReadDirectoryChangesW 调用，由于完成例程是自动分派的，所有不需要等待任何句柄。你可以通过回调传递对象的指针，以便跟踪原始的数据结构。
 
