@@ -1,9 +1,9 @@
 #labels ReadDirectoryChangesW
 = 理解 ReadDirectoryChangesW =
 
-原作者：Jim Beveridge <hr>
-原文：[http://qualapps.blogspot.com/2010/05/understanding-readdirectorychangesw.html?amp]<hr>
-翻译：bbcallen@gmail.com<hr>
+ * 原作者：Jim Beveridge
+ * 原文：[http://qualapps.blogspot.com/2010/05/understanding-readdirectorychangesw.html?amp]
+ * 翻译：bbcallen@gmail.com
 
 _世界上最长，最详细的 ReadDirectoryChangesW 的使用方法描述。_
 
