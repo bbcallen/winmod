@@ -86,7 +86,7 @@ _世界上最长，最详细的 ReadDirectoryChangesW 的使用方法描述。_
 
 　　在研究解决方案的时候，我见识过各种用法：不靠谱的，错误的，以及错得离谱的。
 
-　　如果你正在使用上面提到的简单方案，不要使用阻塞调用，因为唯一取消调用的方法是关闭句柄(未在文档中列出的方法)，如果调用 Vista 之后的函数 [http://msdn.microsoft.com/en-us/library/aa363794%28VS.85%29.aspx CancelSynchronousIo]。正确的办法是使用触发式的同步I/O模式，也就是等待目录句柄。结束线程的时候，不要使用 TerminateThread，因为这个时候，资源无法释放，从而导致各种各样的问题。而是创建一个手动重置的 Event 对象，作为 WaitForMultipleObjects 等待的第二个句柄。当 Event 被设置的时候，退出线程。
+　　如果你正在使用上面提到的简单方案，不要使用阻塞调用，因为唯一取消调用的方法是关闭句柄(未在文档中列出的方法)，或者调用 Vista 之后的函数 [http://msdn.microsoft.com/en-us/library/aa363794%28VS.85%29.aspx CancelSynchronousIo]。正确的办法是使用触发式的同步I/O模式，也就是等待目录句柄。结束线程的时候，不要使用 TerminateThread，因为这个时候，资源无法释放，从而导致各种各样的问题。而是创建一个手动重置的 Event 对象，作为 WaitForMultipleObjects 等待的第二个句柄。当 Event 被设置的时候，退出线程。
 
 　　如果你有上千个目录需要监控，不要使用简单方案。转换为平衡方案。或者监控公共的根目录，并忽略不关心的文件。
 
