@@ -3,7 +3,9 @@
 
 = Introduction =
 
-This bug was found by my friend Gdier. It's also be methoned at http://news.rsdn.ru/forum/atl/82885.1.aspx
+This bug was found by my friend Gdier. http://xiaoxzh.blogbus.com/logs/43415176.html
+
+It's also be methoned at http://news.rsdn.ru/forum/atl/82885.1.aspx
 
 = Details =
 
