@@ -9,12 +9,51 @@
 #include "winfilefinddepthfirst.h"
 
 #include <assert.h>
+#include <winioctl.h>
+#include <atlfile.h>
 #include "winpath.h"
+#include "wintokenstack.h"
 
 using namespace WinMod;
 
-CWinFileFindDepthFirst::CWinFileFindDepthFirst():
-    m_hContext(INVALID_HANDLE_VALUE)
+typedef struct _WINMOD_REPARSE_DATA_BUFFER {
+    ULONG  ReparseTag;
+    USHORT  ReparseDataLength;
+    USHORT  Reserved;
+    union {
+        struct {
+            USHORT  SubstituteNameOffset;
+            USHORT  SubstituteNameLength;
+            USHORT  PrintNameOffset;
+            USHORT  PrintNameLength;
+            ULONG  Flags;
+            WCHAR  PathBuffer[1];
+        } SymbolicLinkReparseBuffer;
+        struct {
+            USHORT  SubstituteNameOffset;
+            USHORT  SubstituteNameLength;
+            USHORT  PrintNameOffset;
+            USHORT  PrintNameLength;
+            WCHAR  PathBuffer[1];
+        } MountPointReparseBuffer;
+        struct {
+            UCHAR  DataBuffer[1];
+        } GenericReparseBuffer;
+    };
+} WINMOD_REPARSE_DATA_BUFFER, *PWINMOD_REPARSE_DATA_BUFFER;
+
+#ifndef REPARSE_DATA_BUFFER_HEADER_SIZE
+#define REPARSE_DATA_BUFFER_HEADER_SIZE  FIELD_OFFSET(WINMOD_REPARSE_DATA_BUFFER, GenericReparseBuffer)
+#endif
+
+#ifndef MAXIMUM_REPARSE_DATA_BUFFER_SIZE
+#define MAXIMUM_REPARSE_DATA_BUFFER_SIZE  ( 16 * 1024 )
+#endif
+
+CWinFileFindDepthFirst::CWinFileFindDepthFirst()
+    : m_hContext(INVALID_HANDLE_VALUE)
+    , m_piFilter(NULL)
+    , m_bNeedSkipDirFiles(FALSE)
 {
 
 }
@@ -43,8 +82,9 @@ BOOL CWinFileFindDepthFirst::FindFirstFile(
     m_pathParent.m_strPath = pszDirectory;
     m_pathParent.ExpandFullPathName();
     m_pathParent.ExpandLongPathName();
-    m_pathParent.AddUnicodePrefix();
-    m_pathParent.RemoveBackslash();
+    //m_pathParent.AddUnicodePrefix();
+    m_pathParent.AddBackslash();
+
 
 
     if (!pszFileSpec || !*pszFileSpec)
@@ -58,12 +98,37 @@ BOOL CWinFileFindDepthFirst::FindFirstFile(
     }
 
 
+    if (m_piFilter)
+    {   // skip dir tree if need
+        if (m_piFilter->NeedSkipDirTree(m_pathParent.m_strPath, NULL))
+            return FALSE;
+    }
+
+
     // begin search
-    m_hContext = CWinFileFindApi::FindFirstFileSkipDots(m_pathParent.m_strPath + L"\\" + pszFileSpec, *this);
+    m_hContext = CWinFileFindApi::FindFirstFileSkipDots(m_pathParent.m_strPath + pszFileSpec, *this);
     if (INVALID_HANDLE_VALUE == m_hContext)
     {
         Close();
         return FALSE;
+    }
+
+
+    if (m_piFilter)
+    {   // check if need skip files
+        m_bNeedSkipDirFiles = m_piFilter->NeedSkipDirFiles(m_pathParent.m_strPath);
+
+
+        if (IsDirectory())
+        {   // skip dir if need
+            CString strFullPath = GetFullPath();
+            if (m_piFilter->NeedSkipDirTree(strFullPath, GetFindDataBuffer()))
+                return this->FindNextFileSkipCurrentTree();
+        }
+        else if (m_bNeedSkipDirFiles)
+        {   // skip file if need
+            return this->FindNextFile(); 
+        }
     }
 
 
@@ -126,7 +191,31 @@ BOOL CWinFileFindDepthFirst::FindNextSiblingFile()
     }
 
 
-    return CWinFileFindApi::FindNextFileSkipDots(m_hContext, *this);
+    BOOL bFound = CWinFileFindApi::FindNextFileSkipDots(m_hContext, *this);
+    if (!m_piFilter)
+        return bFound;
+
+
+    // ¼ì²é¹ýÂË
+    for (NULL; bFound; bFound = CWinFileFindApi::FindNextFileSkipDots(m_hContext, *this))
+    {
+        if (IsDirectory())
+        {   // skip dir if need
+            CString strFullPath = this->GetFullPath();
+            if (m_piFilter->NeedSkipDirTree(strFullPath, GetFindDataBuffer()))
+                continue;
+        }
+        else if (m_bNeedSkipDirFiles)
+        {   // skip file if need
+            continue;
+        }
+
+
+        return TRUE;
+    }
+
+
+    return FALSE;
 }
 
 BOOL CWinFileFindDepthFirst::FindFirstChildFile(LPCWSTR pszFileSpec)
@@ -148,7 +237,8 @@ BOOL CWinFileFindDepthFirst::FindFirstChildFile(LPCWSTR pszFileSpec)
 
 
     PushNode();
-    m_hContext = INVALID_HANDLE_VALUE;
+    m_bNeedSkipDirFiles = FALSE;
+    m_hContext          = INVALID_HANDLE_VALUE;
 
 
     m_pathParent.RemoveBackslash();
@@ -158,13 +248,31 @@ BOOL CWinFileFindDepthFirst::FindFirstChildFile(LPCWSTR pszFileSpec)
         pszFileSpec = L"*";
 
 
-
     m_hContext = CWinFileFindApi::FindFirstFileSkipDots(m_pathParent.m_strPath + L"\\" + pszFileSpec, *this);
     if (INVALID_HANDLE_VALUE == m_hContext)
     {
         CloseTop();
         PopNode();
         return FALSE;
+    }
+
+
+
+    if (m_piFilter)
+    {   // check if need skip files
+        m_bNeedSkipDirFiles = m_piFilter->NeedSkipDirFiles(m_pathParent.m_strPath);
+
+
+        if (IsDirectory())
+        {   // skip dir if need
+            CString strFullPath = this->GetFullPath();
+            if (m_piFilter->NeedSkipDirTree(strFullPath, GetFindDataBuffer()))
+                return this->FindNextSiblingFile();
+        }
+        else if (m_bNeedSkipDirFiles)
+        {   // skip file if need
+            return this->FindNextSiblingFile();
+        }
     }
 
 
@@ -192,6 +300,7 @@ CString CWinFileFindDepthFirst::GetFullPath()
 {
     CWinPath pathFull = m_pathParent.m_strPath;
     pathFull.Append(CWinFileFindData::GetFileName());
+    pathFull.m_strPath.MakeLower();
     return pathFull.m_strPath;
 }
 
@@ -211,7 +320,8 @@ void CWinFileFindDepthFirst::CloseTop()
     if (INVALID_HANDLE_VALUE != m_hContext)
     {
         CWinFileFindApi::FindClose(m_hContext);
-        m_hContext = INVALID_HANDLE_VALUE;
+        m_hContext          = INVALID_HANDLE_VALUE;
+        m_bNeedSkipDirFiles = FALSE;
     }
 }
 
@@ -225,8 +335,9 @@ void CWinFileFindDepthFirst::PushNode()
     POSITION pos = m_findStack.AddTail();
     CWinFileFindNode& node = m_findStack.GetAt(pos);
 
-    node.m_hContext = m_hContext;
-    node.m_findData = m_findData;
+    node.m_bNeedSkipDirFiles    = m_bNeedSkipDirFiles;
+    node.m_hContext             = m_hContext;
+    node.m_findData             = m_findData;
 }
 
 BOOL CWinFileFindDepthFirst::PopNode()
@@ -238,11 +349,111 @@ BOOL CWinFileFindDepthFirst::PopNode()
 
     CWinFileFindNode& node = m_findStack.GetTail();
     
-    m_hContext = node.m_hContext;
-    m_findData = node.m_findData;
+    m_bNeedSkipDirFiles = node.m_bNeedSkipDirFiles;
+    m_hContext          = node.m_hContext;
+    m_findData          = node.m_findData;
 
     m_findStack.RemoveTailNoReturn();
 
     m_pathParent.RemoveFileSpec();
     return TRUE;
 }
+
+
+
+#ifdef WINMOD_ENABLE_SKIP_JUNCTION
+BOOL CWinFileFindRecursiveJuctionGuardFilter::NeedSkipDirFiles(LPCWSTR lpszDirectory)
+{
+    return FALSE;
+}
+
+BOOL CWinFileFindRecursiveJuctionGuardFilter::NeedSkipDirTree(LPCWSTR lpszDirectory, WIN32_FIND_DATAW* pFindData)
+{
+    if (!lpszDirectory || !pFindData)
+        return FALSE;
+
+    if (!(pFindData->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
+        return FALSE;
+
+    if (!(pFindData->dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT))
+        return FALSE;
+
+    CWinTokenHelper TokenHelper;
+    TokenHelper.EnablePrivilege(SE_BACKUP_NAME);
+
+    CAtlFile hDirectory;
+    HRESULT hr = hDirectory.Create(
+        lpszDirectory, 
+        GENERIC_READ,
+        FILE_SHARE_DELETE | FILE_SHARE_READ | FILE_SHARE_WRITE,
+        OPEN_EXISTING, 
+        FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_BACKUP_SEMANTICS);
+    if (FAILED(hr))
+        return FALSE;
+
+
+    DWORD dwBytes = 0;
+    BYTE byBuff[MAXIMUM_REPARSE_DATA_BUFFER_SIZE];
+    memset(&byBuff, 0, sizeof(byBuff));
+    BOOL br = ::DeviceIoControl(
+        hDirectory, 
+        FSCTL_GET_REPARSE_POINT, 
+        NULL,
+        0, 
+        (LPVOID)byBuff, 
+        MAXIMUM_REPARSE_DATA_BUFFER_SIZE, 
+        &dwBytes,
+        NULL);
+    if (!br)
+        return FALSE;
+
+
+    LPWSTR lpszSubstituteName = NULL;
+    LPWSTR lpszSubstituteEnd  = NULL;
+    PWINMOD_REPARSE_DATA_BUFFER pReparseData = (PWINMOD_REPARSE_DATA_BUFFER)byBuff;
+    if (IO_REPARSE_TAG_MOUNT_POINT == pReparseData->ReparseTag)
+    {
+        lpszSubstituteName = pReparseData->MountPointReparseBuffer.PathBuffer + pReparseData->MountPointReparseBuffer.SubstituteNameOffset / 2;
+        lpszSubstituteEnd  = lpszSubstituteName + pReparseData->MountPointReparseBuffer.SubstituteNameLength / 2;
+    }
+    else if (IO_REPARSE_TAG_SYMLINK == pReparseData->ReparseTag)
+    {
+        lpszSubstituteName = pReparseData->SymbolicLinkReparseBuffer.PathBuffer + pReparseData->SymbolicLinkReparseBuffer.SubstituteNameOffset / 2;
+        lpszSubstituteEnd  = lpszSubstituteName + pReparseData->SymbolicLinkReparseBuffer.SubstituteNameLength / 2;
+    }
+
+
+    if ((BYTE*)lpszSubstituteEnd >= byBuff + MAXIMUM_REPARSE_DATA_BUFFER_SIZE)
+        return FALSE;
+
+
+    *lpszSubstituteEnd = L'\0';
+    CWinPath PathLinkDir;
+    if (CWinPathApi::IsRelative(lpszSubstituteName))
+    {
+        PathLinkDir = lpszDirectory;
+        PathLinkDir.RemoveFileSpec();
+        PathLinkDir.Append(lpszSubstituteName);
+        PathLinkDir.ExpandFullPathName();
+        PathLinkDir.ExpandNormalizedPathName();
+    }
+    else
+    {
+        PathLinkDir = lpszSubstituteName;
+        PathLinkDir.ExpandNormalizedPathName();
+    }
+
+
+    if (!m_ReparsePointSet.Lookup(PathLinkDir.m_strPath))
+    {
+        m_ReparsePointSet.SetAt(PathLinkDir.m_strPath, 0);
+
+
+        if (!StrStrW(lpszDirectory, PathLinkDir.m_strPath))
+            return FALSE;
+    }
+
+
+    return TRUE;
+}
+#endif//WINMOD_ENABLE_SKIP_JUNCTION

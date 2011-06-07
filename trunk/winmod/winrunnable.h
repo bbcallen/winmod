@@ -29,15 +29,18 @@ public:
     DWORD   WaitExit(DWORD dwMilliseconds);
     BOOL    IsExit();
     DWORD   GetExitCode(DWORD dwDefaultCode = 0);
+    HANDLE  GetHandle();
 
 protected:
-
     // override this function to implement thread routine
     virtual DWORD STDMETHODCALLTYPE Run() = 0;
 
-protected:
-    CWinThread  m_hThread;  
-    ATL::CEvent m_hNotifyStop;  ///< indicate whether need stop thread
+public:
+    CWinThread m_hThread;
+
+private:
+    AWinRunnable(const AWinRunnable&);
+    AWinRunnable& operator=(const AWinRunnable&);
 };
 
 
@@ -61,8 +64,6 @@ inline HRESULT AWinRunnable::StartRunning()
     }
         
     m_hThread.Close();
-    m_hNotifyStop.Close();
-    m_hNotifyStop.Create(NULL, TRUE, FALSE, NULL);
 
     return m_hThread.Create(this);
 }
@@ -81,8 +82,6 @@ inline DWORD AWinRunnable::GetExitCode(DWORD dwDefaultCode)
 {
     return m_hThread.GetExitCode(dwDefaultCode);
 }
-
-
 
 NS_WINMOD_END
 

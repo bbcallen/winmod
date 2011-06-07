@@ -31,6 +31,7 @@ public:
     virtual HRESULT STDMETHODCALLTYPE Flush() = 0;
 };
 
+
 class IInetHttpDownloadProgress
 {
 public:
@@ -41,13 +42,13 @@ public:
         LPCVOID pvData) = 0;
 };
 
-
+class CInetSession;
 class CInetHttpConnection: public CInetConnection
 {
 public:
     CInetHttpConnection();
     virtual ~CInetHttpConnection();
-
+	
     virtual void Close() {Interrupt(); CInetConnection::Close();}
 
     // pstrVerb could be one of:
@@ -64,7 +65,7 @@ public:
         LPCTSTR     pstrVersion         = NULL,
         LPCTSTR     pstrReferer         = NULL,
         LPCTSTR*    ppstrAcceptTypes    = NULL,
-        DWORD       dwFlags             = INTERNET_FLAG_EXISTING_CONNECT,
+        DWORD       dwFlags             = INTERNET_FLAG_EXISTING_CONNECT | INTERNET_FLAG_NO_CACHE_WRITE,
         DWORD_PTR   dwContext           = 1);
 
     // lpszContentType could be one of:
@@ -97,7 +98,6 @@ private:
     CInetHttpConnection& operator=(CInetHttpConnection& h);
 
 private:
-
     // used by HttpRequest and HttpDownload
     CInetHttpFile m_hHttpFile;
 };
@@ -111,33 +111,6 @@ inline CInetHttpConnection::CInetHttpConnection()
 
 inline CInetHttpConnection::~CInetHttpConnection()
 {
-}
-
-
-
-inline HINTERNET CInetHttpConnection::OpenRequest(
-    LPCTSTR     pstrVerb,
-    LPCTSTR     pstrObjectName,
-    LPCTSTR     pstrVersion,
-    LPCTSTR     pstrReferer,
-    LPCTSTR*    ppstrAcceptTypes,
-    DWORD       dwFlags,
-    DWORD_PTR   dwContext)
-{
-    assert(m_h);
-    HINTERNET hFile = ::HttpOpenRequest(
-        m_h,
-        pstrVerb,
-        pstrObjectName,
-        pstrVersion,
-        pstrReferer,
-        ppstrAcceptTypes,
-        dwFlags,
-        dwContext);
-    if (!hFile)
-        return NULL;
-
-    return hFile;
 }
 
 

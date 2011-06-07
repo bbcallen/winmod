@@ -32,7 +32,6 @@ HRESULT CInetHttpConnection::HttpRequest(
     SetReceiveTimeOut(dwTimeout);
 
 
-    m_hHttpFile.Close();
     m_hHttpFile.Attach(OpenRequest(L"POST", lpObject));
     if (!m_hHttpFile)
         return GetLastError() ? AtlHresultFromLastError() : E_FAIL;
@@ -131,7 +130,6 @@ HRESULT CInetHttpConnection::HttpDownload(
     SetReceiveTimeOut(dwTimeout);
 
 
-    m_hHttpFile.Close();
     m_hHttpFile.Attach(OpenRequest(L"GET", lpObject));
     if (!m_hHttpFile)
         return GetLastError() ? AtlHresultFromLastError() : E_FAIL;
@@ -144,8 +142,6 @@ HRESULT CInetHttpConnection::HttpDownload(
         strHost.Format(L"Host: %s", lpszSpecHostName);
         hr = m_hHttpFile.AddRequestHeaders(strHost,  strHost.GetLength(), HTTP_ADDREQ_FLAG_REPLACE);
     }
-
-
 
     INTERNET_BUFFERS inetBuf;
     ::ZeroMemory(&inetBuf, sizeof(inetBuf));
@@ -244,6 +240,37 @@ HRESULT CInetHttpConnection::HttpDownload(
     if (FAILED(hr))
         return hr;
 
+    DWORD dwLen = MAX_PATH;
+    CString strEncoding;
+    BOOL br = ::HttpQueryInfo(m_hHttpFile.m_h, HTTP_QUERY_CONTENT_ENCODING, strEncoding.GetBuffer(MAX_PATH + 10), &dwLen, NULL);
+    if (!br)
+    {
+        strEncoding.ReleaseBuffer(0);
+        return S_FALSE;
+    }
+
+    strEncoding.ReleaseBuffer();
+
+    if (0 != strEncoding.CompareNoCase(L"gzip"))
+        return S_FALSE;
 
     return S_OK;
+}
+
+HINTERNET WinMod::CInetHttpConnection::OpenRequest( LPCTSTR pstrVerb, LPCTSTR pstrObjectName, LPCTSTR pstrVersion, LPCTSTR pstrReferer, LPCTSTR* ppstrAcceptTypes, DWORD dwFlags, DWORD_PTR dwContext )
+{
+	assert(m_h);
+	HINTERNET hFile = ::HttpOpenRequest(
+		m_h,
+		pstrVerb,
+		pstrObjectName,
+		pstrVersion,
+		pstrReferer,
+		ppstrAcceptTypes,
+		dwFlags,
+		dwContext);
+	if (!hFile)
+		return NULL;
+
+	return hFile;
 }

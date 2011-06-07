@@ -23,14 +23,13 @@ public:
     virtual ~CInetSession();
 
     virtual void Close() {Interrupt(); CInetHandle::Close();}
-
-    HRESULT Open(
-        LPCTSTR lpszAgent       = NULL,
-        DWORD   dwAccessType    = INTERNET_OPEN_TYPE_PRECONFIG, 
-        LPCTSTR lpszProxy       = NULL, 
-        LPCTSTR lpszProxyBypass = NULL, 
-        DWORD   dwFlags         = 0);
-
+	HRESULT Open(
+		LPCTSTR lpszAgent       /*= NULL*/,
+		DWORD   dwAccessType    = INTERNET_OPEN_TYPE_PRECONFIG, 
+		LPCTSTR lpszProxy       = NULL, 
+		LPCTSTR lpszProxyBypass = NULL, 
+		DWORD   dwFlags         = 0);
+	
     HINTERNET HttpConnect(
         LPCTSTR         lpszServerName,
         INTERNET_PORT   nServerPort     = INTERNET_DEFAULT_HTTP_PORT,
@@ -82,14 +81,11 @@ private:
     explicit CInetSession(HANDLE h);
     CInetSession& operator=(CInetSession& h);
 
-
 private:
 
     // used by HttpRequest and HttpDownload
     CInetHttpConnection m_hHttpConnection;
 };
-
-
 
 
 inline CInetSession::CInetSession()
@@ -100,20 +96,15 @@ inline CInetSession::~CInetSession()
 {
 }
 
-inline HRESULT CInetSession::Open(
-    LPCTSTR lpszAgent,
-    DWORD   dwAccessType, 
-    LPCTSTR lpszProxy, 
-    LPCTSTR lpszProxyBypass, 
-    DWORD   dwFlags)
+inline HRESULT CInetSession::Open( LPCTSTR lpszAgent /*= NULL*/, DWORD dwAccessType /*= INTERNET_OPEN_TYPE_PRECONFIG*/, LPCTSTR lpszProxy /*= NULL*/, LPCTSTR lpszProxyBypass /*= NULL*/, DWORD dwFlags /*= 0*/ )
 {
-    Close();
-    HINTERNET hSession = ::InternetOpen(lpszAgent, dwAccessType, lpszProxy, lpszProxyBypass, dwFlags);
-    if (!hSession)
-        return GetLastError() ? AtlHresultFromLastError() : E_FAIL;
+	Close();
+	HINTERNET hSession = ::InternetOpen(lpszAgent, dwAccessType, lpszProxy, lpszProxyBypass, dwFlags);
+	if (!hSession)
+		return GetLastError() ? AtlHresultFromLastError() : E_FAIL;
 
-    Attach(hSession);
-    return S_OK;
+	CInetHandle::Attach(hSession);
+	return S_OK;
 }
 
 inline HINTERNET CInetSession::HttpConnect(
@@ -156,12 +147,9 @@ inline HRESULT CInetSession::HttpRequest(
     if (!lpszServerName || !lpObject)
         return E_POINTER;
 
-
-    m_hHttpConnection.Close();
-    m_hHttpConnection.Attach(HttpConnect(lpszServerName, nServerPort));
+	m_hHttpConnection.Attach(HttpConnect(lpszServerName, nServerPort));
     if (!m_hHttpConnection)
         return GetLastError() ? AtlHresultFromLastError() : E_FAIL;
-
 
     return m_hHttpConnection.HttpRequest(
         lpObject,
@@ -189,12 +177,9 @@ inline HRESULT CInetSession::HttpDownload(
     if (!lpszServerName || !lpObject)
         return E_POINTER;
 
-
-    m_hHttpConnection.Close();
     m_hHttpConnection.Attach(HttpConnect(lpszServerName, nServerPort));
     if (!m_hHttpConnection)
         return GetLastError() ? AtlHresultFromLastError() : E_FAIL;
-
 
     return m_hHttpConnection.HttpDownload(
         piDownloadFile,
@@ -252,8 +237,6 @@ inline void CInetSession::Interrupt()
 {
     m_hHttpConnection.Close();
 }
-
-
 
 NS_WINMOD_END
 

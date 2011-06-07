@@ -71,7 +71,7 @@ inline CWinModule::CWinModule(HMODULE h)
 
 inline CWinModule::~CWinModule()
 {
-    FreeLib();
+    //FreeLib();
 }
 
 inline void CWinModule::FreeLib()

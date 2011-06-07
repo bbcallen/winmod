@@ -73,6 +73,8 @@ public:
     /// create short cut
     static HRESULT  CreateLnkFile(LPCWSTR pszPath, LPCWSTR pszArguments, LPCWSTR pszDesc, LPCWSTR pszLnkFilePath);
     /// resolve short cut
+    static HRESULT  ResolveLnkFileNoSafe(LPCWSTR pszLnkFile, CString& strTargetPath, DWORD dwFlag = SLR_NOUPDATE | SLR_NOTRACK | SLR_NOSEARCH | SLR_NO_UI);
+    /// resolve short cut 
     static HRESULT  ResolveLnkFile(LPCWSTR pszLnkFile, CString& strTargetPath, DWORD dwFlag = SLR_NOUPDATE | SLR_NOTRACK | SLR_NOSEARCH | SLR_NO_UI);
 
 
@@ -97,6 +99,7 @@ public:
     static BOOL     IsUNCServerShare(LPCWSTR pszPath);
     static BOOL     IsFileExisting(LPCWSTR pszPath);
 
+    static BOOL     IsFileNoDirExisting(LPCWSTR pszPath);
     static BOOL     IsLnkFile(LPCWSTR pszPath);
 
     static BOOL     IsDeviceAccessible(WCHAR cRoot);
@@ -170,6 +173,7 @@ public:
     void        AddUnicodePrefix();
     CWinPath    GetPathWithoutUnicodePrefix() const;
 
+    HRESULT     ExpandCanonicalize();
     HRESULT     ExpandFullPathName();
     HRESULT     ExpandLongPathName();
     void        ExpandEnvironmentStrings();
