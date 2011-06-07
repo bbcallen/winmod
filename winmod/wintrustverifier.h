@@ -10,7 +10,6 @@
 
 #include <wincrypt.h>
 #include <atlcoll.h>
-#include <atlstr.h>
 #include "winmodbase.h"
 #include "wintrustmod.h"
 
@@ -61,10 +60,6 @@ public:
     static BOOL IsPEFile(LPCWSTR pwszFileFullPath);
 
     static BOOL IsPEFile(HANDLE hFile);
-
-    static BOOL IsPEFileOrEICAR(LPCWSTR pwszFileFullPath);
-
-    static BOOL IsPEFileOrEICAR(HANDLE hFile);
 
     static BOOL IsWinTrustRetCode(DWORD dwRetCode);
 

@@ -532,67 +532,6 @@ BOOL CWinTrustVerifier::IsPEFile(HANDLE hFile)
     return TRUE;
 }
 
-BOOL CWinTrustVerifier::IsPEFileOrEICAR(LPCWSTR pwszFileFullPath)
-{
-    assert(pwszFileFullPath);
-
-    CAtlFile hFile;
-    HRESULT  hr = hFile.Create(
-        pwszFileFullPath,
-        GENERIC_READ,
-        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-        OPEN_EXISTING);
-    if (FAILED(hr))
-        return hr;
-
-    return IsPEFile(hFile);
-}
-
-BOOL CWinTrustVerifier::IsPEFileOrEICAR(HANDLE hFile)
-{
-    assert(hFile && hFile != INVALID_HANDLE_VALUE);
-
-    // locate MZ header
-    DWORD nNewPos = ::SetFilePointer(hFile, 0, 0, FILE_BEGIN);
-    if (nNewPos == INVALID_SET_FILE_POINTER)
-        return FALSE;
-
-    // read MZ header
-    IMAGE_DOS_HEADER DosHeader;
-    DWORD dwBytesRead;
-    BOOL br = ::ReadFile(hFile, &DosHeader, sizeof(DosHeader), &dwBytesRead, NULL);
-    if (!br || dwBytesRead != sizeof(DosHeader))
-        return FALSE;
-
-    // check MZ magic number
-    if (IMAGE_DOS_SIGNATURE != DosHeader.e_magic)
-    {   // check if it is eicar
-        if (0 == memcmp(&DosHeader, WINMOD_EICAR_TEXT, sizeof(DosHeader)))
-        {
-            return TRUE;
-        }
-
-        return FALSE;
-    }
-
-    // local PE header
-    nNewPos = ::SetFilePointer(hFile, DosHeader.e_lfanew, 0, FILE_BEGIN);
-    if (nNewPos == INVALID_SET_FILE_POINTER)
-        return FALSE;
-
-    // read PE header
-    DWORD dwPeSign = 0;
-    br = ::ReadFile(hFile, &dwPeSign, sizeof(DWORD), &dwBytesRead, NULL);
-    if (!br || dwBytesRead != sizeof(DWORD))
-        return FALSE;
-
-    // check PE magic number
-    if (IMAGE_NT_SIGNATURE != dwPeSign)
-        return FALSE;
-
-    return TRUE;
-}
-
 BOOL CWinTrustVerifier::IsWinTrustRetCode(DWORD dwRetCode)
 {
     if (ERROR_SUCCESS == dwRetCode)

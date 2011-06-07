@@ -21,7 +21,7 @@ class CWinRegKey: public CRegKey
 {
 public:
 
-    LONG ExBinaryValue(LPCWSTR lpszValueName, CAtlArray<BYTE>& buf);
+    LONG ExQueryBinaryValue(LPCWSTR lpszValueName, CAtlArray<BYTE>& buf);
 
     LONG ExQueryStringValue(LPCWSTR lpszValueName, CString& strValue, DWORD dwCchMaxLen = WINMOD_REASONABL_VALUE_LEN);
 

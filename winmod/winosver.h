@@ -30,12 +30,17 @@ class CWinOSVer
 public:
 
     enum {
+        em_OS_MajorVer_Win8     = 6,
+        em_OS_MajorVer_Win7     = 6,
         em_OS_MajorVer_Vista    = 6,
         em_OS_MajorVer_Win2k3   = 5,
         em_OS_MajorVer_WinXP    = 5,
 
-        em_OS_MinorVer_Win2k3   = 2,
+        em_OS_MinorVer_Win7     = 1,
+        em_OS_MinorVer_Win8     = 2,
+
         em_OS_MinorVer_WinXP    = 1,
+        em_OS_MinorVer_Win2k3   = 2,
     };
 
     static DWORD GetOSAndSP()
@@ -47,7 +52,7 @@ public:
         if (!br)
             return 0;
 
-        
+
         DWORD dwOSAndSP = 0;
         dwOSAndSP |= (LOBYTE(osver.dwMajorVersion)      << 24);
         dwOSAndSP |= (LOBYTE(osver.dwMinorVersion)      << 16);
@@ -55,11 +60,15 @@ public:
         return dwOSAndSP;
     }
 
+    static DWORD GetOSMajorVersion(DWORD dwOSSP) {return ((dwOSSP >> 24) & 0xFF);}
+    static DWORD GetOSMinorVersion(DWORD dwOSSP) {return ((dwOSSP >> 16) & 0xFF);}
+    static DWORD GetOSSPMajor(DWORD dwOSSP)      {return ((dwOSSP >> 8) & 0xFF);}
+
     static BOOL IsX86()
     {
         SYSTEM_INFO sysInfo;
         memset(&sysInfo, 0, sizeof(sysInfo));
-        GetSystemInfo(&sysInfo);
+        ::GetSystemInfo(&sysInfo);
 
         if (PROCESSOR_ARCHITECTURE_INTEL == sysInfo.wProcessorArchitecture)
             return TRUE;
@@ -70,6 +79,11 @@ public:
     static BOOL IsVista()
     {
         return 0 == CompareMajor(em_OS_MajorVer_Vista);
+    }
+
+    static BOOL IsWin7OrLater()
+    {
+        return 0 <= CompareVersion(em_OS_MajorVer_Win7, em_OS_MinorVer_Win7);
     }
 
     static BOOL IsVistaOrLater()
@@ -119,6 +133,25 @@ public:
         ::GetVersionEx(&osInfo);
 
         return osInfo.dwMajorVersion - dwMajorVer;
+    }
+
+
+    static void GetOSInfoText(CString& strOSInfo)
+    {
+        OSVERSIONINFOW OSInfo;
+        OSInfo.dwOSVersionInfoSize = sizeof(OSInfo);
+        ::GetVersionEx(&OSInfo);
+
+        OSInfo.szCSDVersion[_countof(OSInfo.szCSDVersion) - 1] = 0;
+        strOSInfo.Format(
+            L"Windows NT %lu.%lu %s Build %lu",
+            OSInfo.dwMajorVersion,
+            OSInfo.dwMinorVersion,
+            OSInfo.szCSDVersion,
+            OSInfo.dwBuildNumber);
+
+        if (!IsX86())
+            strOSInfo.AppendFormat(L" x64");
     }
 };
 

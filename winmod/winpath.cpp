@@ -53,6 +53,9 @@ HRESULT CWinPathApi::ExpandFullPathName(CString& strPathName)
 
 HRESULT CWinPathApi::ExpandLongPathName(CString& strPathName)
 {
+    if (-1 == strPathName.Find(L'~', 0))
+        return S_FALSE;
+
     DWORD dwLen = ::GetLongPathName(strPathName, NULL, 0);
     if (0 == dwLen)
         return GetLastError() ? AtlHresultFromLastError() : E_FAIL;
@@ -369,13 +372,12 @@ LPCWSTR CWinPathApi::FindExtension(LPCWSTR pszPath)
             break;
 
         case L'\\':
-        case L' ':              // extensions can't have spaces
             lpExtension = NULL;
             break;
         }
     }
 
-    return lpExtension ? lpExtension : pszPath;
+    return lpExtension ? lpExtension : pszPath; /// return dot or last '\0'
 }
 
 HRESULT CWinPathApi::CreateLnkFile(LPCWSTR pszPath, LPCWSTR pszArguments, LPCWSTR pszDesc, LPCWSTR pszLnkFilePath)
@@ -438,7 +440,7 @@ HRESULT CWinPathApi::CreateLnkFile(LPCWSTR pszPath, LPCWSTR pszArguments, LPCWST
 
 }
 
-HRESULT CWinPathApi::ResolveLnkFile(LPCWSTR pszLnkFile, CString& strTargetPath, DWORD dwFlag)
+HRESULT CWinPathApi::ResolveLnkFileNoSafe(LPCWSTR pszLnkFile, CString& strTargetPath, DWORD dwFlag)
 {
     assert(pszLnkFile);
 
@@ -463,16 +465,9 @@ HRESULT CWinPathApi::ResolveLnkFile(LPCWSTR pszLnkFile, CString& strTargetPath, 
     if (FAILED(hr))
         return hr;
 
-    try
-    {
-        // Open the shortcut file and initialize it from its contents
-        hr = spiPersistFile->Load(pszLnkFile, STGM_READ); 
-    }
-    catch ( ... )
-    {
-        hr = E_UNEXPECTED;
-    }
 
+    // Open the shortcut file and initialize it from its contents
+    hr = spiPersistFile->Load(pszLnkFile, STGM_READ); 
     if (FAILED(hr))
         return hr;
 
@@ -502,7 +497,17 @@ HRESULT CWinPathApi::ResolveLnkFile(LPCWSTR pszLnkFile, CString& strTargetPath, 
     return S_OK;
 }
 
-
+HRESULT CWinPathApi::ResolveLnkFile(LPCWSTR pszLnkFile, CString& strTargetPath, DWORD dwFlag)
+{
+    __try
+    {
+        return ResolveLnkFileNoSafe(pszLnkFile, strTargetPath, dwFlag);
+    }
+    __except(EXCEPTION_EXECUTE_HANDLER)
+    {
+        return E_POINTER;
+    }
+}
 
 
 
@@ -531,7 +536,7 @@ HRESULT CWinPathApi::SetFileAces(
 
     if (dwAllowed)
     {
-        bRet = dacl.AddAllowedAce(Sids::World(), dwAllowed, AceFlags);
+        bRet = dacl.AddAllowedAce(Sids::World(), (BYTE)dwAllowed, (BYTE)AceFlags);
         if (!bRet)
             return GetLastError() ? AtlHresultFromLastError() : E_FAIL;
     }
@@ -539,7 +544,7 @@ HRESULT CWinPathApi::SetFileAces(
 
     if (dwDenied)
     {
-        bRet = dacl.AddDeniedAce(Sids::World(), dwDenied, AceFlags);
+        bRet = dacl.AddDeniedAce(Sids::World(), (BYTE)dwDenied, (BYTE)AceFlags);
         if (!bRet)
             return GetLastError() ? AtlHresultFromLastError() : E_FAIL;
     }
@@ -645,7 +650,7 @@ BOOL CWinPathApi::IsRelative(LPCWSTR pszPath)
     if (L'\\' == pszPath[0])
         return FALSE;   // Does it begin with a slash ?
 
-    if (L'\0' != pszPath[0] && L':' == pszPath[1])
+    if (L'\0' != pszPath[0] && L':' == pszPath[1] && L'\\' == pszPath[2])
         return FALSE;   // Does it begin with a drive and a colon ?
 
     return TRUE;
@@ -789,6 +794,20 @@ BOOL CWinPathApi::IsFileExisting(LPCWSTR pszPath)
     return TRUE;
 }
 
+BOOL CWinPathApi::IsFileNoDirExisting(LPCWSTR pszPath)
+{
+    if (!pszPath || !*pszPath)
+        return FALSE;
+
+    DWORD dwAttr = ::GetFileAttributes(pszPath);
+    if (INVALID_FILE_ATTRIBUTES == dwAttr)
+        return FALSE;
+    if (FILE_ATTRIBUTE_DIRECTORY == dwAttr)
+        return FALSE;
+
+    return TRUE;
+}
+
 BOOL CWinPathApi::IsLnkFile(LPCWSTR pszPath)
 {
     if (!pszPath)
@@ -810,27 +829,26 @@ BOOL CWinPathApi::IsDeviceAccessible(WCHAR cRoot)
 
 
 
-    BOOL bAccessible = FALSE;
     CAtlFile hDevice;
     HRESULT hr = hDevice.Create(
         szRootPath,
         GENERIC_READ,
         FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
         OPEN_EXISTING);
-    if (SUCCEEDED(hr))
-    {
-        DWORD dwBytesAct  = 0;
-        bAccessible = ::DeviceIoControl(  
-            hDevice,  
-            IOCTL_DISK_CHECK_VERIFY,  
-            NULL,  
-            0,  
-            NULL,  
-            0,  
-            &dwBytesAct,  
-            NULL);
-    }
+    if (FAILED(hr))
+        return FALSE;
 
+
+    DWORD dwBytesAct  = 0;
+    BOOL  bAccessible = ::DeviceIoControl(  
+        hDevice,  
+        IOCTL_DISK_CHECK_VERIFY,  
+        NULL,  
+        0,  
+        NULL,  
+        0,  
+        &dwBytesAct,  
+        NULL);
 
     return bAccessible;
 }
@@ -887,7 +905,7 @@ void CWinPath::BuildRoot(int iDrive)
         m_strPath.Append(L":\\");
     }
 }
-//
+
 //void CWinPath::Canonicalize()
 //{
 //    CString strResult;
@@ -1452,6 +1470,8 @@ void CWinPath::AddUnicodePrefix()
     if (HasUnicodePrefix())
         return;
 
+    ExpandCanonicalize();
+
     CString strResult;
     if (IsUNC())
     {
@@ -1477,6 +1497,23 @@ CWinPath CWinPath::GetPathWithoutUnicodePrefix() const
     CWinPath pathResult = (LPCWSTR)m_strPath;
     pathResult.RemoveUnicodePrefix();
     return pathResult;
+}
+
+HRESULT CWinPath::ExpandCanonicalize()
+{
+    if (HasUnicodePrefix())
+        return S_FALSE;
+
+    BOOL bIsUNC = IsUNC();
+    while (m_strPath.Replace(L"\\\\", L"\\"))
+    {
+        NULL;
+    }
+
+    if (bIsUNC)
+        m_strPath = CString(L"\\") + m_strPath;
+
+    return S_OK;
 }
 
 HRESULT CWinPath::ExpandFullPathName()

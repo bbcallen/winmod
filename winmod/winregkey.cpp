@@ -14,7 +14,7 @@
 
 using namespace WinMod;
 
-LONG CWinRegKey::ExBinaryValue(LPCWSTR lpszValueName, CAtlArray<BYTE>& buf)
+LONG CWinRegKey::ExQueryBinaryValue(LPCWSTR lpszValueName, CAtlArray<BYTE>& buf)
 {
     assert(m_hKey);
     if (!m_hKey)

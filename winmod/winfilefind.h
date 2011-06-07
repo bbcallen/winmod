@@ -29,6 +29,7 @@ public:
 
     void    Close();
     HANDLE  GetHandle();
+    BOOL    IsEndOfFind();
 
 private:
 

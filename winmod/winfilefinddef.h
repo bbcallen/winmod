@@ -16,7 +16,7 @@ class IWinFileFindFilter
 {
 public:
     virtual BOOL NeedSkipDirFiles(LPCWSTR lpszDirectory) = 0;
-    virtual BOOL NeedSkipDirTree(LPCWSTR lpszDirectory) = 0;
+    virtual BOOL NeedSkipDirTree(LPCWSTR lpszDirectory, WIN32_FIND_DATAW* pFindData) = 0;
 };
 
 NS_WINMOD_END

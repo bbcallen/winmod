@@ -70,3 +70,8 @@ HANDLE CWinFileFind::GetHandle()
 {
     return m_hContext;
 }
+
+BOOL CWinFileFind::IsEndOfFind()
+{
+    return !m_hContext || INVALID_HANDLE_VALUE == m_hContext;
+}

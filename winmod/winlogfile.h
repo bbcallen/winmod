@@ -8,7 +8,9 @@
 #ifndef WINLOGFILE_H
 #define WINLOGFILE_H
 
+#include <atlstr.h>
 #include <atlfile.h>
+#include <atlcoll.h>
 #include "winmodbase.h"
 
 NS_WINMOD_BEGIN

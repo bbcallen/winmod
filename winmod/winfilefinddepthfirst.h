@@ -13,6 +13,7 @@
 #include "winmodbase.h"
 #include "winpath.h"
 #include "winfilefinddata.h"
+#include "winfilefinddef.h"
 
 NS_WINMOD_BEGIN
 
@@ -25,6 +26,8 @@ public:
     
 // Operations
 public:
+    void    SetFilter(IWinFileFindFilter* piFilter) {m_piFilter = piFilter;}
+
     BOOL    FindFirstFile(
         LPCWSTR pszDirectory,
         LPCWSTR pszFileSpec = NULL);
@@ -58,22 +61,47 @@ protected:
     BOOL    PopNode();
 
 
-
     // inner context
     class CWinFileFindNode: public CWinFileFindData
     {
     public:
-        CWinFileFindNode(): m_hContext(INVALID_HANDLE_VALUE) {}
+        CWinFileFindNode()
+            : m_bNeedSkipDirFiles(TRUE)
+            , m_hContext(INVALID_HANDLE_VALUE) 
+        {
+        }
 
+        BOOL            m_bNeedSkipDirFiles;
         HANDLE          m_hContext;
         WIN32_FIND_DATA m_findData;
     };
 
     CWinPath                    m_pathParent;
 
+    BOOL                        m_bNeedSkipDirFiles;
     HANDLE                      m_hContext;
     CAtlList<CWinFileFindNode>  m_findStack;
+    IWinFileFindFilter*         m_piFilter;
 };
+
+
+
+// skip recursive junction
+#ifdef WINMOD_ENABLE_SKIP_JUNCTION
+class CWinFileFindRecursiveJuctionGuardFilter: public IWinFileFindFilter
+{
+public:
+    virtual BOOL NeedSkipDirFiles(LPCWSTR lpszDirectory);
+
+    virtual BOOL NeedSkipDirTree(LPCWSTR lpszDirectory, WIN32_FIND_DATAW* pFindData);
+
+
+protected:
+
+    typedef CAtlMap<CString, DWORD> CReparsePointSet;
+    CReparsePointSet m_ReparsePointSet;
+};
+#endif//WINMOD_ENABLE_SKIP_JUNCTION
 
 NS_WINMOD_END
 

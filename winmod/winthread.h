@@ -17,7 +17,7 @@ NS_WINMOD_BEGIN
 class IWinRunnable
 {
 public:
-    virtual DWORD   STDMETHODCALLTYPE Run() = 0;
+    virtual DWORD STDMETHODCALLTYPE Run() = 0;
 };
 
 
@@ -192,6 +192,38 @@ inline DWORD WINAPI CWinThread::RunThreadFuncNoCRT(LPVOID pParam)
 
     return 0;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+class CWinRefGuard
+{
+public:
+    CWinRefGuard(volatile LONG& rlRef): m_rlRef(rlRef)
+    {
+        ::InterlockedIncrement(&m_rlRef);
+    }
+
+    ~CWinRefGuard()
+    {
+        ::InterlockedDecrement(&m_rlRef);
+    }
+
+protected:
+    volatile LONG& m_rlRef;
+};
+
+
+
 
 
 
