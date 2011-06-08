@@ -213,7 +213,7 @@ public:
     class CCallChannel
     {
     public:
-        typedef CAtlMap<POSITION, DWORD>    CCmdMap;
+        typedef CAtlMap<IWinModCommand*, DWORD>    CCmdMap;
 
         CCallChannel(): m_lAsyncCallCount(0) {}
         HRESULT Initialize(HANDLE m_hNotifyStop)
@@ -222,17 +222,17 @@ public:
             return m_RspMsgQueue.Initialize(m_hNotifyStop);
         }
 
-        HRESULT PushCmd(POSITION pos)
+        HRESULT RegCmd(IWinModCommand* piCmd)
         {
             // record cmd of this channel
-            m_CmdMap.SetAt(pos, 0);
+            m_CmdMap.SetAt(piCmd, 0);
             return S_OK;
         }
 
-        HRESULT PostRsp(POSITION pos)
+        HRESULT PostRsp(IWinModCommand* piCmd, POSITION pos)
         {
             // check if rsp match any cmd of this channel
-            CCmdMap::CPair* pPair = m_CmdMap.Lookup(pos);
+            CCmdMap::CPair* pPair = m_CmdMap.Lookup(piCmd);
             if (!pPair)
                 return S_FALSE;
 
@@ -475,7 +475,7 @@ protected:
         if (!pos)
             return NULL;
 
-        pChannel->PushCmd(pos);
+        pChannel->RegCmd(pMsg);
         return pos;
     }
 
@@ -524,7 +524,7 @@ protected:
         if (!pos)
             return;
 
-        pChannel->PostRsp(pos);
+        pChannel->PostRsp(Item.m_spiCmd, pos);
     }
 
 public:
