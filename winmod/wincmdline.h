@@ -8,7 +8,9 @@
 #ifndef WINCMDLINE_H
 #define WINCMDLINE_H
 
+#include <assert.h>
 #include <atlstr.h>
+#include <atlcoll.h>
 #include "winmodbase.h"
 
 NS_WINMOD_BEGIN

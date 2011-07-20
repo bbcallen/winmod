@@ -24,7 +24,6 @@ HRESULT CWinLogFile::CreateAsLogFile(LPCWSTR lpszFilePath)
         return E_POINTER;
 
 
-    ::DeleteFile(lpszFilePath);
     HRESULT hr = CAtlFile::Create(
         lpszFilePath,
         GENERIC_WRITE,

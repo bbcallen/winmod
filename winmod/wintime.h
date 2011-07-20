@@ -26,6 +26,9 @@ public:
     __time64_t GetCRTTime() const throw();
     void SetCRTTime(__time64_t nCRTTime) throw();
 
+    FILETIME GetUTCFileTime() const throw();
+    void SetUTCFileTime(FILETIME ftUTCTime) throw();
+
     SYSTEMTIME GetLocalSystemTime() const throw();
     SYSTEMTIME GetUTCSystemTime() const throw();
 
@@ -64,7 +67,15 @@ inline void CWinFileTime::SetCRTTime(__time64_t nCRTTime) throw()
     return SetTime(nWinTime);
 }
 
+inline FILETIME CWinFileTime::GetUTCFileTime() const throw()
+{
+    return *this;
+}
 
+inline void CWinFileTime::SetUTCFileTime(FILETIME ftUTCTime) throw()
+{
+    *this = ftUTCTime;
+}
 
 inline SYSTEMTIME CWinFileTime::GetLocalSystemTime() const throw()
 {
