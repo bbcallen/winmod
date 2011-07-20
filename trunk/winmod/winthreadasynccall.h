@@ -1,12 +1,12 @@
 /**
-* @file    winthreadgroup.h
+* @file    winthreadasynccall.h
 * @brief   ...
 * @author  bbcallen
-* @date    2011-05-22 20:33
+* @date    2011-06-27 17:49
 */
 
-#ifndef WINTHREADGROUP_H
-#define WINTHREADGROUP_H
+#ifndef WINTHREADASYNCCALL_H
+#define WINTHREADASYNCCALL_H
 
 #include <assert.h>
 #include <atlbase.h>
@@ -21,112 +21,6 @@ IWinModCommand: public IUnknown
 public:
     virtual HRESULT STDMETHODCALLTYPE OnWinCmdExecute() = 0;
 };
-
-
-
-class CWinThreadGroup
-    : public IWinWorker
-    , public CWinModSyncTraits
-{
-public:
-    CWinThreadGroup(): m_hNotifyStop(NULL)
-    {}
-    virtual ~CWinThreadGroup() {}
-
-
-    HRESULT Startup(size_t nWorkerThreadCount, HANDLE hNotifyStop, DWORD dwCmdTargetID)
-    {
-        m_hNotifyStop = hNotifyStop;
-        return m_ThreadPool.StartupSingleWorker(this, nWorkerThreadCount, hNotifyStop, dwCmdTargetID);
-    }
-
-    HRESULT WaitForAllExit(DWORD dwMaxWait = INFINITE)
-    {
-        return m_ThreadPool.WaitForAllExit(dwMaxWait);
-    }
-
-    HRESULT PostCommand(IWinModCommand* piCommand, DWORD dwPriority = 0)
-    {
-        if (IsNotifiedStop())
-            return E_ABORT;
-
-        POSITION pos = PushCmd(piCommand);
-        return m_ThreadPool.PostNormalMsg(pos, dwPriority);
-    }
-
-    BOOL IsNotifiedStop()
-    {
-        DWORD dwWaitRet = ::WaitForSingleObject(m_hNotifyStop, 0);
-        return dwWaitRet != WAIT_TIMEOUT;
-    }
-
-protected:
-    // IWinWorker::OnWinWorkerExecute
-    HRESULT STDMETHODCALLTYPE OnWinWorkerExecute(HANDLE hNotifyStop, DWORD dwWorkerID, CWinThreadMsg& ThreadMsg)
-    {
-        if (ThreadMsg.m_MsgType != CWinThreadMsg::em_Normal)
-            return S_OK;
-
-        CComPtr<IWinModCommand> spiCommand;
-        PopCmd((POSITION)ThreadMsg.m_pvParam, &spiCommand);
-        assert(spiCommand);
-        if (!spiCommand)
-            return S_OK;
-
-        return InternalExecute(hNotifyStop, spiCommand);
-    }
-
-
-protected:
-    HRESULT InternalExecute(HANDLE hNotifyStop, IWinModCommand* piCommand)
-    {
-        assert(piCommand);
-        return piCommand->OnWinCmdExecute();
-    }
-
-    POSITION PushCmd(IWinModCommand* pMsg)
-    {
-        CObjGuard Guard(m_CmdListLock);
-
-        return m_CmdList.AddTail(pMsg);
-    }
-
-    void PopCmd(POSITION pos, IWinModCommand** ppiCmd)
-    {
-        assert(ppiCmd);
-        assert(!*ppiCmd);
-        CObjGuard Guard(m_CmdListLock);
-
-        m_CmdList.GetAt(pos).CopyTo(ppiCmd);
-        m_CmdList.RemoveAt(pos);
-    }
-
-
-public:
-    CWinThreadPool  m_ThreadPool;
-
-protected:
-    typedef CAtlList<CComPtr<IWinModCommand> > CCmdList;
-
-    CObjLock        m_CmdListLock;
-    CCmdList        m_CmdList;
-
-    HANDLE          m_hNotifyStop;      ///< not own this event
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 /*
     CWinThreadAsyncCallQueue is some kind like Async I/O
@@ -643,7 +537,6 @@ protected:
     CWinAsyncCallQueue* m_pAsyncCallQueue;
 };
 
-
 NS_WINMOD_END
 
-#endif//WINTHREADGROUP_H
+#endif//WINTHREADASYNCCALL_H
