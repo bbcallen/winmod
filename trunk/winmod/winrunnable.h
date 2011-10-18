@@ -36,7 +36,7 @@ protected:
     virtual DWORD STDMETHODCALLTYPE Run() = 0;
 
 public:
-    CWinThread m_hThread;
+    CWinModThread m_hThread;
 
 private:
     AWinRunnable(const AWinRunnable&);

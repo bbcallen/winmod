@@ -61,7 +61,7 @@ HRESULT CWinHttpConnection::HttpRequest(
 
     INTERNET_BUFFERS inetBuf;
     ::ZeroMemory(&inetBuf, sizeof(inetBuf));
-    hr = m_hHttpFile.SendRequest(NULL, 0, (LPVOID)(LPCSTR)strCommand, (DWORD)strCommand.GetLength());
+    hr = m_hHttpFile.SendRequestEx(NULL, 0, (LPVOID)(LPCSTR)strCommand, (DWORD)strCommand.GetLength());
     if (FAILED(hr))
         return hr;
 
@@ -149,7 +149,7 @@ HRESULT CWinHttpConnection::HttpDownload(
 
     INTERNET_BUFFERS inetBuf;
     ::ZeroMemory(&inetBuf, sizeof(inetBuf));
-    hr = m_hHttpFile.SendRequest();
+    hr = m_hHttpFile.SendRequestEx();
     if (FAILED(hr))
         return hr;
 

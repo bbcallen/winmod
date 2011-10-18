@@ -71,6 +71,13 @@ public:
     HRESULT SetConnectTimeOut(DWORD  dwMilliSeconds);
     HRESULT GetConnectTimeOut(DWORD& dwMilliSeconds);
 
+    WINHTTP_STATUS_CALLBACK SetStatusCallback(
+        WINHTTP_STATUS_CALLBACK lpfnInternetCallback,
+        DWORD dwNotificationFlags,
+        DWORD_PTR dwContext);
+
+
+
     void    Interrupt();
 
 private:
@@ -237,6 +244,21 @@ inline HRESULT CWinHttpSession::GetConnectTimeOut(DWORD& dwMilliSeconds)
 inline void CWinHttpSession::Interrupt()
 {
     m_hHttpConnection.Close();
+}
+
+inline WINHTTP_STATUS_CALLBACK CWinHttpSession::SetStatusCallback(
+    WINHTTP_STATUS_CALLBACK lpfnInternetCallback,
+    DWORD dwNotificationFlags,
+    DWORD_PTR dwContext)
+{
+    if (!m_h)
+        return NULL;
+    
+    WINHTTP_STATUS_CALLBACK pPrev = ::WinHttpSetStatusCallback(m_h, lpfnInternetCallback, dwNotificationFlags, NULL);
+
+    ::WinHttpSetOption(m_h, WINHTTP_OPTION_CONTEXT_VALUE, &dwContext, sizeof(dwContext));
+
+    return pPrev;
 }
 
 NS_WINMOD_END

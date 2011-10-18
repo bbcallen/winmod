@@ -8,6 +8,8 @@
 #include "stdafx.h"
 #include "winthreadpool.h"
 
+NS_WINMOD_BEGIN
+
 //////////////////////////////////////////////////////////////////////////
 HRESULT CWinMessageQueue::Initialize(HANDLE hNotifyStop)
 {
@@ -158,7 +160,7 @@ HRESULT CWinWorkerThread::Initialize(
     IWinMessageQueue*   piMessageQueue,
     DWORD               dwWorkerID,
     IWinWorker*         piWorker,
-    DWORD               dwThreadPoolID)
+    LPCSTR              lpszThreadPoolName)
 {
     assert(!m_hNotifyStop);
     assert(!m_piMessageQueue);
@@ -168,7 +170,7 @@ HRESULT CWinWorkerThread::Initialize(
     assert(piWorker);
     m_hNotifyStop       = hNotifyStop;
     m_piMessageQueue    = piMessageQueue;
-    m_dwThreadPoolID    = dwThreadPoolID;
+    m_strThreadPoolName = lpszThreadPoolName;
     m_dwWorkerID        = dwWorkerID;
     m_piWorker          = piWorker;
 
@@ -206,7 +208,12 @@ DWORD CWinWorkerThread::DoRun()
     assert(m_piMessageQueue);
     assert(m_piWorker);
 
-    DWORD dwThreadPoolID = m_dwThreadPoolID;
+    if (!m_strThreadPoolName.IsEmpty())
+    {
+        CStringA strThreadName;
+        strThreadName.Format("%s-%lu", m_strThreadPoolName, m_dwWorkerID);
+        CWinModThread::SetThreadName(strThreadName);
+    }
 
     m_hDeactived.Reset();
     while (IsNotifiedStop())
@@ -278,7 +285,7 @@ HRESULT CWinThreadPool::StartupSingleWorker(
     IWinWorker* piSingleWorker,
     size_t nThreadCount,
     HANDLE hNotifyStop,
-    DWORD  dwThreadPoolID)
+    LPCSTR lpszThreadPoolName)
 {
     assert(piSingleWorker);
     assert(nThreadCount);
@@ -295,7 +302,7 @@ HRESULT CWinThreadPool::StartupSingleWorker(
     {
         WorkerPtrArray.Add(piSingleWorker);
     }
-    return Startup(WorkerPtrArray.GetData(), WorkerPtrArray.GetCount(), hNotifyStop, dwThreadPoolID);
+    return Startup(WorkerPtrArray.GetData(), WorkerPtrArray.GetCount(), hNotifyStop, lpszThreadPoolName);
 }
 
 
@@ -304,7 +311,7 @@ HRESULT CWinThreadPool::Startup(
     IWinWorker** WorkerPtrArray,
     size_t nWorkerCount,
     HANDLE hNotifyStop,
-    DWORD  dwThreadPoolID)
+    LPCSTR lpszThreadPoolName)
 {
     assert(WorkerPtrArray);
     assert(nWorkerCount);
@@ -320,8 +327,8 @@ HRESULT CWinThreadPool::Startup(
 
     CObjGuard Guard(m_ObjLock);
 
-    m_dwThreadPoolID = dwThreadPoolID;
-    m_hNotifyStop    = hNotifyStop;
+    m_strThreadPoolName = lpszThreadPoolName;
+    m_hNotifyStop       = hNotifyStop;
     HRESULT hr = m_MessageQueue.Initialize(m_hNotifyStop);
     if (FAILED(hr))
         return hr;
@@ -332,7 +339,7 @@ HRESULT CWinThreadPool::Startup(
         CWinWorkerThread* pNewThread = new CWinWorkerThread;
         m_ThreadList.AddTail(pNewThread);
         m_UnusedThread.AddTail(pNewThread);
-        pNewThread->Initialize(hNotifyStop, &m_MessageQueue, DWORD(i), WorkerPtrArray[i], m_dwThreadPoolID);
+        pNewThread->Initialize(hNotifyStop, &m_MessageQueue, DWORD(i), WorkerPtrArray[i], m_strThreadPoolName);
     }
 
     hr = ActiveAll();
@@ -507,3 +514,5 @@ DWORD CWinThreadPool::GetMaxThreadsCount()
 {
     return (DWORD)m_ThreadList.GetCount();
 }
+
+NS_WINMOD_END

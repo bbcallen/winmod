@@ -148,7 +148,7 @@ public:
     BOOL        IsUNCServerShare() const;
     //BOOL        MakePretty();
     //BOOL        MatchSpec(LPCWSTR pszSpec) const;
-    //void        QuoteSpaces();
+    void        QuoteSpaces();
     //BOOL        RelativePathTo(LPCWSTR pszFrom, DWORD dwAttrFrom, LPCWSTR pszTo, DWORD dwAttrTo );
     void        RemoveArgs();
     void        RemoveBackslash();
@@ -181,6 +181,9 @@ public:
     BOOL        ExpandAsAccessiblePath();
 
     DWORD       GetModuleFileName(HMODULE hModule, DWORD dwMaxSize = MAX_PATH);
+    DWORD       GetModuleDirectory(HMODULE hModule, DWORD dwMaxSize = MAX_PATH);
+    DWORD       GetExeModDirectory(DWORD dwMaxSize = MAX_PATH);
+    DWORD       GetDllModDirectory(DWORD dwMaxSize = MAX_PATH);
 
     CString m_strPath;
 };

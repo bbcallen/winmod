@@ -10,7 +10,10 @@
 
 #include <assert.h>
 #include <atlstr.h>
+#pragma warning(push)
+#pragma warning(disable: 4267) // 'var' : conversion from 'size_t' to 'type', possible loss of data
 #include <atlcoll.h>
+#pragma warning(pop)
 #include "winmodbase.h"
 
 NS_WINMOD_BEGIN
@@ -163,8 +166,13 @@ private:
     static  LPCWSTR TrimSpace(LPCWSTR lpszText);
     const CWinCmdArg GetArgument(size_t nArgIndex);
 
+#ifdef _AFX
+    typedef CAtlMap<CString, size_t, CStringRefElementTraits<CString> > COptionMap;
+#else
+    typedef CAtlMap<CString, size_t> COptionMap;
+#endif
+
     typedef CAtlArray<CWinCmdArg>       CRawArgArray;
-    typedef CAtlMap<CString, size_t>    COptionMap;
     typedef CAtlArray<size_t>           CParamMap;
 
     CRawArgArray    m_RawArgArray;

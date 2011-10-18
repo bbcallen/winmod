@@ -67,6 +67,9 @@ public:
     HRESULT STDMETHODCALLTYPE WaitForMsg(CWinThreadMsg& rMsg, DWORD dwWorkerID = ULONG_MAX);
     DWORD   STDMETHODCALLTYPE GetWaitingThreadsCount() {return m_lWaitingThreadCount;}
 
+public:
+    HANDLE  GetEventWakeUp() {return m_hMsgNotEmpty;}
+
 protected:
     CObjLock        m_ObjLock;
     HANDLE          m_hNotifyStop;      // not own this event
@@ -96,7 +99,7 @@ public:
         IWinMessageQueue*   piMessageQueue,
         DWORD               dwWorkerID,
         IWinWorker*         piWorker,
-        DWORD               dwThreadPoolID);
+        LPCSTR              lpszThreadPoolName);
 
     HANDLE  GetEventDeactived() {return m_hDeactived;}
     HRESULT Active() {m_hNotifyActive.Set(); return S_OK;}
@@ -108,7 +111,7 @@ protected:
     DWORD DoRun();
 
 protected:
-    volatile DWORD      m_dwThreadPoolID;
+    CStringA            m_strThreadPoolName;
     volatile DWORD      m_dwWorkerID;       // zero-based worker id
     IWinWorker*         m_piWorker;
     IWinMessageQueue*   m_piMessageQueue;
@@ -139,14 +142,14 @@ public:
         IWinWorker* piSingleWorker,
         size_t nThreadCount,
         HANDLE hNotifyStop,
-        DWORD  dwThreadPoolID);
+        LPCSTR lpszThreadPoolName);
 
     // one worker per thread
     HRESULT Startup(
         IWinWorker** WorkerPtrArray,
         size_t nWorkerCount,
         HANDLE hNotifyStop,
-        DWORD  dwThreadPoolID);
+        LPCSTR lpszThreadPoolName);
 
     DWORD   WaitForAllExit(DWORD dwMaxWait = INFINITE);
 
@@ -176,8 +179,8 @@ protected:
     CWinMessageQueue    m_MessageQueue;
     CThreadList         m_ThreadList;
     CThreadList         m_UnusedThread;
-
-    volatile DWORD      m_dwThreadPoolID;
+    CStringA            m_strThreadPoolName;
+    
     volatile LONG       m_lActivedThreadCount;
 
 private:
