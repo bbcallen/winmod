@@ -10,6 +10,8 @@
 
 #include "winrunnable.h"
 
+NS_WINMOD_BEGIN
+
 //////////////////////////////////////////////////////////////////////////
 class CWinThreadMsg
 {
@@ -55,5 +57,25 @@ public:
     virtual DWORD   STDMETHODCALLTYPE GetWaitingThreadsCount() = 0;
 };
 
+
+//////////////////////////////////////////////////////////////////////////
+class __declspec(uuid("E7F5995F-5540-489a-992B-48006E2B5161"))
+IWinModCommand: public IUnknown
+{
+public:
+    virtual HRESULT STDMETHODCALLTYPE OnWinCmdExecute() = 0;
+};
+
+
+//////////////////////////////////////////////////////////////////////////
+class __declspec(uuid("5C39BFBB-86AF-4fe2-B3EA-959943056D60"))
+IWinModTimerCommand: public IWinModCommand
+{
+public:
+    // non-repeat timer would not be called
+    virtual BOOL STDMETHODCALLTYPE TimerNeedContinue() = 0;
+};
+
+NS_WINMOD_END
 
 #endif//WINTHREADPOOLDEF_H

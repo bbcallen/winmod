@@ -1183,6 +1183,18 @@ BOOL CWinPath::IsUNCServerShare() const
     return CWinPathApi::IsUNCServerShare(m_strPath);
 }
 
+void CWinPath::QuoteSpaces()
+{
+    if (-1 != m_strPath.Find(L'"'))
+        return;
+
+    if (-1 == m_strPath.Find(L" "))
+        return;
+
+    m_strPath.Insert(0, L'"');
+    m_strPath.AppendChar(L'"');
+}
+
 void CWinPath::RemoveArgs()
 {
     for (int i = 0; i < m_strPath.GetLength(); ++i)
@@ -1538,4 +1550,24 @@ DWORD CWinPath::GetModuleFileName(HMODULE hModule, DWORD dwMaxSize)
     m_strPath.ReleaseBuffer(dwRet);
 
     return dwRet;
+}
+
+DWORD CWinPath::GetModuleDirectory(HMODULE hModule, DWORD dwMaxSize)
+{
+    DWORD dwRet = ::GetModuleFileName(hModule, m_strPath.GetBuffer(dwMaxSize + 1), dwMaxSize);
+    dwRet = min(dwRet, dwMaxSize);
+    m_strPath.ReleaseBuffer(dwRet);
+
+    RemoveFileSpec();
+    return dwRet;
+}
+
+DWORD CWinPath::GetExeModDirectory(DWORD dwMaxSize)
+{
+    return GetModuleDirectory(NULL, dwMaxSize);
+}
+
+DWORD CWinPath::GetDllModDirectory(DWORD dwMaxSize)
+{
+    return GetModuleDirectory((HMODULE)&__ImageBase, dwMaxSize);
 }

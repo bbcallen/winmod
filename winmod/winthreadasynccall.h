@@ -15,13 +15,6 @@
 
 NS_WINMOD_BEGIN
 
-class __declspec(uuid("E7F5995F-5540-489a-992B-48006E2B5161"))
-IWinModCommand: public IUnknown
-{
-public:
-    virtual HRESULT STDMETHODCALLTYPE OnWinCmdExecute() = 0;
-};
-
 /*
     CWinThreadAsyncCallQueue is some kind like Async I/O
 
@@ -154,12 +147,12 @@ public:
     HRESULT Startup(
         size_t nWorkerThreadCount,
         HANDLE hNotifyStop,
-        DWORD  dwCmdTargetID)
+        LPCSTR lpszAcqName)
     {
         assert(hNotifyStop);
 
         m_hNotifyStop = hNotifyStop;
-        return m_ThreadPool.StartupSingleWorker(this, nWorkerThreadCount, hNotifyStop, dwCmdTargetID);
+        return m_ThreadPool.StartupSingleWorker(this, nWorkerThreadCount, hNotifyStop, lpszAcqName);
     }
 
     HRESULT WaitForAllExit(DWORD dwMaxWait = INFINITE)
@@ -301,6 +294,20 @@ public:
         PopCmd((POSITION)Msg.m_pvParam, Item);
         assert(Item.m_spiCmd);
         return Item.m_spiCmd.CopyTo(ppiCommand);
+    }
+
+    HANDLE GetChannelEventWakeUp(DWORD dwChannelID)
+    {
+        CObjGuard Guard(m_CmdListLock);
+
+        CChannelMap::CPair* pPair = m_ChannelMap.Lookup(dwChannelID);
+        if (!pPair)
+            return NULL;
+
+        CCallChannel* pChannel = pPair->m_value;
+        assert(pChannel);
+
+        return pChannel->m_RspMsgQueue.GetEventWakeUp();
     }
 
     DWORD GetMaxThreadsCount()
@@ -518,6 +525,13 @@ public:
         return spiCmd.QueryInterface(ppiCommand);
     }
 
+    HANDLE GetChannelEventWakeUp()
+    {
+        assert(m_pAsyncCallQueue);
+
+        return m_pAsyncCallQueue->GetChannelEventWakeUp(m_dwChannelID);
+    }
+
     DWORD GetMaxThreadsCount()
     {
         assert(m_pAsyncCallQueue);
@@ -536,6 +550,116 @@ protected:
     DWORD               m_dwChannelID;
     CWinAsyncCallQueue* m_pAsyncCallQueue;
 };
+
+
+class CWinAsyncMultiCall
+{
+public:
+    // S_FALSE: wake up by extra events
+    // S_OK:    wake up by commands
+    HRESULT WaitForMultipleChannel(
+        CWinAsyncCall**     ppAsyncCallArray,
+        DWORD               dwAsyncCallCount,
+        HANDLE*             pExtraEvents = NULL,
+        DWORD               dwExtraEventCount = 0)
+    {
+        assert(ppAsyncCallArray);
+        assert(dwAsyncCallCount <= MAXIMUM_WAIT_OBJECTS);
+
+        CAtlArray<HANDLE> HandleArray;
+        for (DWORD i = 0; i < dwAsyncCallCount; ++i)
+        {
+            HANDLE hWakeUp = ppAsyncCallArray[i]->GetChannelEventWakeUp();
+            assert(hWakeUp);
+
+            HandleArray.Add(ppAsyncCallArray[i]->GetChannelEventWakeUp());
+        }
+
+
+        if (pExtraEvents)
+        {
+            for (DWORD i = 0; i < dwExtraEventCount; ++i)
+            {
+                assert(pExtraEvents[i]);
+                HandleArray.Add(pExtraEvents[i]);
+            }
+        }
+
+
+        DWORD dwWait = ::WaitForMultipleObjects(
+            (DWORD)HandleArray.GetCount(),
+            HandleArray.GetData(),
+            FALSE,
+            INFINITE);
+        if (dwWait < WAIT_OBJECT_0)
+            return E_ABORT;
+
+
+        DWORD dwWaitIndex = dwWait - WAIT_OBJECT_0;
+        if (dwWaitIndex > HandleArray.GetCount())
+            return E_ABORT;
+
+
+        // extra events
+        if (dwWaitIndex >= dwAsyncCallCount)
+            return S_FALSE;
+
+
+        // msgqueue::event is auto reset
+        ::SetEvent(HandleArray[dwWaitIndex]);
+
+
+        CComPtr<IWinModCommand> spCommand;
+        HRESULT hr = ppAsyncCallArray[dwWaitIndex]->WaitChannelRet(&spCommand);
+        if (FAILED(hr))
+            return hr;
+
+
+        m_ResponseList.AddTail(spCommand);
+        return S_OK;
+    }
+
+
+    void RemoveCommands()
+    {
+        m_ResponseList.RemoveAll();
+    }
+
+
+    HRESULT PopCommand(IWinModCommand** ppiCommand)
+    {
+        assert(ppiCommand);
+        assert(!*ppiCommand);
+
+        if (m_ResponseList.IsEmpty())
+            return E_FAIL;
+
+        *ppiCommand = m_ResponseList.RemoveHead();
+        return S_OK;
+    }
+
+
+    template <class T>
+    HRESULT PopCommand(T** ppiCommand)
+    {
+        assert(ppiCommand);
+        assert(!*ppiCommand);
+
+        CComPtr<IWinModCommand> spiCmd;
+        HRESULT hr = PopCommand((IWinModCommand**)&spiCmd);
+        if (FAILED(hr))
+            return hr;
+
+        return spiCmd.QueryInterface(ppiCommand);
+    }
+
+
+protected:
+    typedef CAtlList<CComPtr<IWinModCommand> >  CCommandList;
+
+    CCommandList    m_ResponseList;
+};
+
 
 NS_WINMOD_END
 

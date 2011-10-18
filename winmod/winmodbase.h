@@ -19,6 +19,13 @@ NS_WINMOD_BEGIN
 NS_WINMOD_END
 
 
+/// 判断是否是windows错误
+#ifndef MAKE_WIN32_ERROR
+#define MAKE_WIN32_ERROR(x)                         (x ? HRESULT_FROM_WIN32(x) : E_FAIL)
+#define IS_WIN32_ERROR(x)                           ((0xFFFF0000 & x) == 0x80070000)
+#endif//MAKE_WIN32_ERROR
+
+
 /// 构造winmod模块的http成功码
 #define MAKE_WINMOD_HTTP_SUCCESS(x)             HRESULT(0x60020000 | (0xFFFF & x))
 /// 构造winmod模块的http错误码
@@ -57,7 +64,5 @@ public:
         return 0 != (value & bits);
     }
 };
-
-
 
 #endif//WINMODBASE_H

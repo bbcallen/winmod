@@ -25,7 +25,7 @@ public:
 
 
 
-class CWinThread: public CHandle
+class CWinModThread: public CHandle
 {
 public:
 
@@ -45,6 +45,12 @@ public:
 
 
     DWORD   GetExitCode(DWORD dwDefaultCode = 0);
+
+    // call in thread
+    static void SetThreadName(LPCSTR lpszThreadName, DWORD dwThreadID = -1);
+
+protected:
+    CStringA m_strThreadName;
 
 private:
 
@@ -69,14 +75,14 @@ private:
 
 #ifdef _ATL_MIN_CRT
 
-inline HRESULT CWinThread::Create(IWinRunnable* piRunnable)
+inline HRESULT CWinModThread::Create(IWinRunnable* piRunnable)
 {
     return CreateNoCRT(piRunnable);
 }
 
 #else
 
-inline HRESULT CWinThread::Create(IWinRunnable* piRunnable)
+inline HRESULT CWinModThread::Create(IWinRunnable* piRunnable)
 {
     assert(!m_h);
     assert(piRunnable);
@@ -98,7 +104,7 @@ inline HRESULT CWinThread::Create(IWinRunnable* piRunnable)
 #endif//_ATL_MIN_CRT
 
 
-inline HRESULT CWinThread::CreateNoCRT(IWinRunnable* piRunnable)
+inline HRESULT CWinModThread::CreateNoCRT(IWinRunnable* piRunnable)
 {
     assert(!m_h);
     assert(piRunnable);
@@ -117,12 +123,12 @@ inline HRESULT CWinThread::CreateNoCRT(IWinRunnable* piRunnable)
 }
 
 
-inline DWORD CWinThread::WaitExit(DWORD dwMilliseconds)
+inline DWORD CWinModThread::WaitExit(DWORD dwMilliseconds)
 {
     return ::WaitForSingleObject(m_h, dwMilliseconds);
 }
 
-inline BOOL CWinThread::IsExit()
+inline BOOL CWinModThread::IsExit()
 {
     return WAIT_TIMEOUT != WaitExit(0);
 }
@@ -134,32 +140,32 @@ inline BOOL CWinThread::IsExit()
 //}
 
 
-inline DWORD CWinThread::Suspend()
+inline DWORD CWinModThread::Suspend()
 {
     assert(m_h);
     return ::SuspendThread(m_h);
 }
 
-inline DWORD CWinThread::Resume()
+inline DWORD CWinModThread::Resume()
 {
     return ::ResumeThread(m_h);
 }
 
 
-inline BOOL CWinThread::SetPriority(int nPriority)
+inline BOOL CWinModThread::SetPriority(int nPriority)
 {
     assert(m_h);
     return ::SetThreadPriority(m_h, nPriority);
 }
 
-inline int CWinThread::GetPriority()
+inline int CWinModThread::GetPriority()
 {
     assert(m_h);
     return ::GetThreadPriority(m_h);
 }
 
 
-inline DWORD CWinThread::GetExitCode(DWORD dwDefaultCode)
+inline DWORD CWinModThread::GetExitCode(DWORD dwDefaultCode)
 {
     assert(m_h);
     DWORD dwExitCode;
@@ -169,10 +175,45 @@ inline DWORD CWinThread::GetExitCode(DWORD dwDefaultCode)
     return dwDefaultCode;
 }
 
+inline void CWinModThread::SetThreadName(LPCSTR lpszThreadName, DWORD dwThreadID)
+{
+#ifdef DEBUG
+    typedef struct tagTHREADNAME_INFO 
+    {
+        DWORD dwType;		// must be 0x1000 
+        LPCSTR szName;		// pointer to name (in same addr space) 
+        DWORD dwThreadID;	// thread ID (-1 caller thread) 
+        DWORD dwFlags;		// reserved for future use, must be zero 
+    } THREADNAME_INFO;
+
+    // Setting a Thread Name (Unmanaged)
+    // http://msdn.microsoft.com/en-us/library/xcb2z8hs%28v=vs.71%29.aspx
+    __try
+    {
+        THREADNAME_INFO info;
+        info.dwType = 0x1000;
+        info.szName = lpszThreadName;
+        info.dwThreadID = dwThreadID;
+        info.dwFlags = 0;
+
+        RaiseException(
+            0x406D1388,
+            0,
+            sizeof(info)/sizeof(DWORD),
+            (DWORD*)&info);
+    }
+    __except(EXCEPTION_CONTINUE_EXECUTION)
+    {
+    }
+
+#else
+    UNREFERENCED_PARAMETER(dwThreadID);
+    UNREFERENCED_PARAMETER(lpszThreadName);
+#endif
+}
 
 
-
-inline unsigned int __stdcall CWinThread::RunThreadFunc(void* pParam)
+inline unsigned int __stdcall CWinModThread::RunThreadFunc(void* pParam)
 {
     DWORD dwRet = RunThreadFuncNoCRT(pParam);
 
@@ -183,7 +224,7 @@ inline unsigned int __stdcall CWinThread::RunThreadFunc(void* pParam)
     return DWORD(dwRet);
 }
 
-inline DWORD WINAPI CWinThread::RunThreadFuncNoCRT(LPVOID pParam)
+inline DWORD WINAPI CWinModThread::RunThreadFuncNoCRT(LPVOID pParam)
 {
     IWinRunnable* pThis = (IWinRunnable*)pParam;
 
