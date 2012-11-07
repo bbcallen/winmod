@@ -1,0 +1,26 @@
+=== original ===
+http://muddledramblings.com/rumblings-from-the-secret-labs/lamp-server-from-scratch-with-macports/
+
+=== prepare ===
+{{{
+sudo port selfupdate
+# sudo port upgrade outdated
+}}}
+
+=== apache2 ===
+{{{
+sudo port install apache2
+# sudo port load apache2
+
+# vi ~/.bash_profile
+# alias apache2ctl='sudo /opt/local/apache2/bin/apachectl'
+# source ~/.profile
+
+# apache2ctl start
+}}}
+
+=== php54 ===
+{{{
+sudo port install php54
+sudo port install php54-apache2handler
+}}}
