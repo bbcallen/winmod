@@ -17,10 +17,53 @@ sudo port -vd install apache2
 # source ~/.profile
 
 # apache2ctl start
+
+# wget http://127.0.0.1
 }}}
 
 === php54 ===
 {{{
 sudo port -vd install php54
 sudo port -vd install php54-apache2handler
+
+sudo cp /opt/local/etc/php54/php.ini-development /opt/local/etc/php54/php.ini
+php -i
+
+# cd /opt/local/apache2/conf
+# sudo cp httpd.conf httpd.conf.backup
+
+# cd /opt/local/apache2/modules
+# sudo /opt/local/apache2/bin/apxs -a -e -n "php5" libphp54.so
+
+# vi /opt/local/apache2/conf/httpd.conf
+# ...
+# AddType text/html .php
+# ...
+# AddHandler application/x-httpd-php .php
+# AddHandler application/x-httpd-php-source .phps
+# ...
+# DirectoryIndex index.html index.php
+# ...
+# Options FollowSymLinks
+
+# /opt/local/apache2/bin/httpd -t
+# apache2ctl restart
+}}}
+
+=== index.php ===
+{{{
+# cd /opt/local/apache2/htdocs
+# vi index.html index.php
+<html>
+  <body>
+    <h1>It works!</h1>
+    <?php echo phpinfo(); ?>
+  </body>
+</html>
+}}}
+
+=== mysql5 ===
+{{{
+sudo port -vd install mysql5-server
+sudo port -vd load mysql5-server
 }}}
