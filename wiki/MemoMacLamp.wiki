@@ -117,3 +117,6 @@ apache2ctl restart
     mysql_select_db($dbname);
 }}}
 [http://127.0.0.1/testmysql.php]
+{{{
+sudo rm /opt/local/apache2/htdocs/testmysql.php
+}}}
