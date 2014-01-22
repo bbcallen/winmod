@@ -7,8 +7,8 @@ The debug symbol for xcode project is controlled by project settings of "Apple L
 For application, this will generate a separate dsym file in build output folder. For static library, this will only increase the size of the generated a file
 
 == Deployment postprocessing ==
-||APP-D||YES||
-||APP-R||NO||
+||APP-D||NO||
+||APP-R||YES||
 ||LIB-D||NO||
 ||LIB-R||NO||
 This is a generic control to decide whether other deployment operation should be performed, particular, Strip Linked Product is executed or not. 
